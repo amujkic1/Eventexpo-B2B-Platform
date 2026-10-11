@@ -1,0 +1,21 @@
+# Local editor and deployment settings
+.vscode/
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Local secrets
+.env
+.env.*
+!.env.example
+
+# Installed dependencies
+/vendor/
+/node_modules/
+
+# Local logs and test caches
+*.log
+.phpunit.result.cache
+/.phpunit.cache/
