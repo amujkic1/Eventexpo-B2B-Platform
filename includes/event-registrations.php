@@ -130,53 +130,17 @@ function b2b_render_registration_details_meta_box( $post ) {
 
     $event = get_post( $event_id );
 
-    echo '<p><strong>Event:</strong> ';
-
-    echo $event && 'event' === $event->post_type
-        ? esc_html( $event->post_title )
+    $event_title = $event && 'event' === $event->post_type
+        ? $event->post_title
         : 'Unknown event';
+    $has_answers = is_array( $answers ) && ! empty( $answers );
+    $fields = $has_answers ? b2b_get_event_registration_fields( $event_id ) : array();
+    $answer_rows = b2b_registration_answer_rows( $fields, $answers );
 
-    echo '</p>';
-
-    echo '<p><strong>Status:</strong> ' .
-        esc_html( $status ?: 'pending' ) .
-        '</p>';
-
-    echo '<hr>';
-
-    echo '<h3>Submitted Answers</h3>';
-
-    if ( ! is_array( $answers ) || empty( $answers ) ) {
-        echo '<p>No answers available.</p>';
-        return;
-    }
-
-    $fields = b2b_get_event_registration_fields( $event_id );
-
-    foreach ( $fields as $field ) {
-
-        if ( empty( $field['name'] ) ) {
-            continue;
-        }
-
-        $name = sanitize_key( $field['name'] );
-
-        $label = isset( $field['label'] )
-            ? $field['label']
-            : $name;
-
-        $value = isset( $answers[ $name ] )
-            ? $answers[ $name ]
-            : '';
-
-        echo '<p>';
-
-        echo '<strong>' . esc_html( $label ) . ':</strong> ';
-
-        echo esc_html( is_scalar( $value ) ? (string) $value : '' );
-
-        echo '</p>';
-    }
+    echo b2b_render_template(
+        'admin/registration-details',
+        compact( 'event_title', 'status', 'has_answers', 'answer_rows' )
+    );
 }
 
 /**
