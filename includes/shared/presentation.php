@@ -13,7 +13,7 @@ function b2b_render_template( $template, array $context = array() ) {
         throw new InvalidArgumentException( 'Invalid template name.' );
     }
 
-    $template_path = __DIR__ . '/../templates/' . $template . '.php';
+    $template_path = dirname( __DIR__, 2 ) . '/templates/' . $template . '.php';
 
     if ( ! is_file( $template_path ) ) {
         throw new InvalidArgumentException( 'Template not found: ' . $template );
@@ -65,12 +65,12 @@ function b2b_registration_answer_rows( array $fields, $answers ) {
 }
 
 function b2b_asset_url( $file ) {
-    return plugins_url( 'assets/' . $file, dirname( __DIR__ ) . '/eventexpo-b2b-core.php' );
+    return plugins_url( 'assets/' . $file, dirname( __DIR__, 2 ) . '/eventexpo-b2b-core.php' );
 }
 
 function b2b_enqueue_assets() {
-    wp_enqueue_style( 'eventexpo-b2b', b2b_asset_url( 'ui.css' ), array(), filemtime( __DIR__ . '/../assets/ui.css' ) );
-    wp_enqueue_script( 'eventexpo-b2b', b2b_asset_url( 'ui.js' ), array(), filemtime( __DIR__ . '/../assets/ui.js' ), true );
+    wp_enqueue_style( 'eventexpo-b2b', b2b_asset_url( 'css/ui.css' ), array(), filemtime( dirname( __DIR__, 2 ) . '/assets/css/ui.css' ) );
+    wp_enqueue_script( 'eventexpo-b2b', b2b_asset_url( 'js/ui.js' ), array(), filemtime( dirname( __DIR__, 2 ) . '/assets/js/ui.js' ), true );
 }
 add_action( 'wp_enqueue_scripts', 'b2b_enqueue_assets' );
 
@@ -110,7 +110,7 @@ function b2b_render_app( $template, array $context = array(), $active = '' ) {
         'events' => array( 'label' => 'My events', 'url' => b2b_page_url( 'b2b_manage_event', 'manage-event' ) ),
     );
     $profile_url = b2b_page_url( 'b2b_my_company', 'my-company' );
-    return b2b_render_template( 'app', compact( 'content', 'account', 'navigation', 'profile_url', 'active' ) );
+    return b2b_render_template( 'shared/app', compact( 'content', 'account', 'navigation', 'profile_url', 'active' ) );
 }
 
 function b2b_initials( $name ) {

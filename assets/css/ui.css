@@ -1,7 +1,7 @@
-@font-face{font-family:EventExpo Poppins;src:url(fonts/poppins-regular.woff2) format('woff2');font-weight:400;font-style:normal;font-display:swap}
-@font-face{font-family:EventExpo Poppins;src:url(fonts/poppins-medium.woff2) format('woff2');font-weight:500;font-style:normal;font-display:swap}
-@font-face{font-family:EventExpo Poppins;src:url(fonts/poppins-semibold.woff2) format('woff2');font-weight:600;font-style:normal;font-display:swap}
-@font-face{font-family:EventExpo Poppins;src:url(fonts/poppins-bold.woff2) format('woff2');font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:EventExpo Poppins;src:url(../fonts/poppins-regular.woff2) format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:EventExpo Poppins;src:url(../fonts/poppins-medium.woff2) format('woff2');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:EventExpo Poppins;src:url(../fonts/poppins-semibold.woff2) format('woff2');font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:EventExpo Poppins;src:url(../fonts/poppins-bold.woff2) format('woff2');font-weight:700;font-style:normal;font-display:swap}
 .ee-app{--ee-primary:#1f5e3f;--ee-primary-hover:#15442d;--ee-tint:#eef5f0;--ee-page:#f7f7fb;--ee-line:#efeff2;--ee-line-strong:#e1e1e6;--ee-ink:#33333c;--ee-body:#4f4f58;--ee-muted:#62626e;--ee-faint:#808087;background:var(--ee-page);color:var(--ee-body);font-family:'EventExpo Poppins',Poppins,Arial,sans-serif;font-size:14px;line-height:1.6;width:100%;min-width:0;isolation:isolate;letter-spacing:0}
 .ee-app *,.ee-app *::before,.ee-app *::after{box-sizing:border-box;letter-spacing:0}
 .ee-app [hidden]{display:none!important}

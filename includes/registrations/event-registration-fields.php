@@ -216,11 +216,11 @@ function b2b_render_event_registration_form( $event_id ) {
     }
     
     if ( empty( $fields ) ) {
-        return b2b_render_template( 'message', array( 'message' => 'Registration is not available yet.' ) );
+        return b2b_render_template( 'shared/message', array( 'message' => 'Registration is not available yet.' ) );
     }
 
     return b2b_render_template(
-        'event-registration-form',
+        'registrations/event-registration-form',
         compact( 'event_id', 'fields', 'message' )
     );
 }

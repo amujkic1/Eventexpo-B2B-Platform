@@ -13,9 +13,11 @@ def main():
         raise SystemExit("Missing GitHub Actions secrets: " + ", ".join(missing))
 
     root = Path(__file__).resolve().parents[2]
-    files = [root / "eventexpo-b2b-core.php"]
+    files = []
     for directory in ("assets", "includes", "templates"):
         files.extend(sorted(p for p in (root / directory).rglob("*") if p.is_file()))
+    # Switch the bootstrap only after its new dependencies have been uploaded.
+    files.append(root / "eventexpo-b2b-core.php")
     files = [p for p in files if not any(part.startswith(".") for part in p.relative_to(root).parts)]
     if any(p.is_symlink() or not p.resolve().is_relative_to(root) for p in files):
         raise SystemExit("Deployment files must stay inside the project.")

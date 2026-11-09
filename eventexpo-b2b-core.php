@@ -11,15 +11,15 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-require_once plugin_dir_path( __FILE__ ) . 'includes/presentation.php';
-require_once plugin_dir_path( __FILE__ ) . 'includes/companies.php';
-require_once plugin_dir_path( __FILE__ ) . 'includes/registration.php';
-require_once plugin_dir_path( __FILE__ ) . 'includes/dashboard.php';
-require_once plugin_dir_path( __FILE__ ) . 'includes/company-profile.php';
-require_once plugin_dir_path( __FILE__ ) . 'includes/companies-directory.php';
-require_once plugin_dir_path( __FILE__ ) . 'includes/company-public-profile.php';
-require_once plugin_dir_path( __FILE__ ) . 'includes/events.php';
-require_once plugin_dir_path( __FILE__ ) . 'includes/event-public-profile.php';
-require_once plugin_dir_path( __FILE__ ) . 'includes/manage-event.php';
-require_once plugin_dir_path( __FILE__ ) . 'includes/event-registration-fields.php';
-require_once plugin_dir_path( __FILE__ ) . 'includes/event-registrations.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/shared/presentation.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/companies/companies.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/registrations/registration.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/dashboard/dashboard.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/companies/company-profile.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/companies/companies-directory.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/companies/company-public-profile.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/events/events.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/events/event-public-profile.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/events/manage-event.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/registrations/event-registration-fields.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/registrations/event-registrations.php';

@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
             <tr data-ee-registration-row data-status="<?php echo esc_attr( $status ); ?>">
                 <td><strong>#<?php echo esc_html( $registration['id'] ); ?></strong></td>
                 <td><?php echo esc_html( $registration['date'] ); ?></td>
-                <td class="ee-answer"><?php echo b2b_render_template( 'registration-answers', array( 'answer_rows' => $registration['answers'] ) ); ?></td>
+                <td class="ee-answer"><?php echo b2b_render_template( 'registrations/registration-answers', array( 'answer_rows' => $registration['answers'] ) ); ?></td>
                 <td><span class="ee-badge ee-badge-<?php echo esc_attr( $status ); ?>"><?php echo esc_html( ucfirst( $status ) ); ?></span></td>
                 <td><div class="ee-actions">
                     <?php foreach ( array( 'approved' => array( 'Approve', 'check' ), 'rejected' => array( 'Reject', 'x' ), 'pending' => array( 'Reset to pending', 'rotate-ccw' ) ) as $action_status => $action ) : ?>

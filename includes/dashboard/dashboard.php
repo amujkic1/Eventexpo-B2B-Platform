@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 function b2b_dashboard() {
 
     if ( ! is_user_logged_in() ) {
-        return b2b_render_app( 'message', array( 'message' => 'Please log in to access your B2B dashboard.' ) );
+        return b2b_render_app( 'shared/message', array( 'message' => 'Please log in to access your B2B dashboard.' ) );
     }
 
     $user = wp_get_current_user();
@@ -49,7 +49,7 @@ function b2b_dashboard() {
     $next_event_data = $next_event ? b2b_get_event_data( $next_event->ID ) : array();
 
     return b2b_render_app(
-        'dashboard',
+        'dashboard/dashboard',
         compact( 'user', 'company_id', 'events', 'event_dates', 'company_title', 'company_industry', 'profile_checks', 'next_event', 'next_event_data' ),
         'dashboard'
     );
