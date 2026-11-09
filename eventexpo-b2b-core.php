@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+require_once plugin_dir_path( __FILE__ ) . 'includes/presentation.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/companies.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/registration.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/dashboard.php';

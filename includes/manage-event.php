@@ -11,49 +11,16 @@ function b2b_manage_event_list() {
 
     $events = b2b_get_manageable_events( get_current_user_id() );
 
-    ob_start();
-    ?>
+    $event_dates = array();
+    foreach ( $events as $event ) {
+        $event_dates[ $event->ID ] = get_post_meta( $event->ID, 'start_date', true );
+    }
 
-    <div class="b2b-manage-event-list">
-
-        <?php if ( ! empty( $events ) ) : ?>
-
-            <p>Select an event to manage:</p>
-
-            <ul>
-
-                <?php foreach ( $events as $event ) : ?>
-
-                    <?php $start_date = get_post_meta( $event->ID, 'start_date', true ); ?>
-
-                    <li>
-                        <a href="<?php echo esc_url( b2b_get_manage_event_url( $event->ID ) ); ?>">
-                            <?php echo esc_html( $event->post_title ); ?>
-                        </a>
-
-                        <?php if ( ! empty( $start_date ) ) : ?>
-                            (<?php echo esc_html( $start_date ); ?>)
-                        <?php endif; ?>
-
-                        <?php if ( 'publish' !== $event->post_status ) : ?>
-                            <em><?php echo esc_html( ucfirst( $event->post_status ) ); ?></em>
-                        <?php endif; ?>
-                    </li>
-
-                <?php endforeach; ?>
-
-            </ul>
-
-        <?php else : ?>
-
-            <p>You don't have any events to manage.</p>
-
-        <?php endif; ?>
-
-    </div>
-
-    <?php
-    return ob_get_clean();
+    return b2b_render_app(
+        'manage-event-list',
+        compact( 'events', 'event_dates' ),
+        'events'
+    );
 }
 
 /**
@@ -62,7 +29,7 @@ function b2b_manage_event_list() {
 function b2b_manage_event_shortcode() {
 
     if ( ! is_user_logged_in() ) {
-        return '<p>Please log in to manage an event.</p>';
+        return b2b_render_app( 'message', array( 'message' => 'Please log in to manage an event.' ) );
     }
 
     $event_id = isset( $_GET['event_id'] )
@@ -74,14 +41,14 @@ function b2b_manage_event_shortcode() {
     }
 
     if ( get_post_type( $event_id ) !== 'event' ) {
-        return '<p>Invalid event.</p>';
+        return b2b_render_app( 'message', array( 'message' => 'Invalid event.' ) );
     }
 
     if ( ! b2b_user_can_manage_event(
         get_current_user_id(),
         $event_id
     ) ) {
-        return '<p>Access denied.</p>';
+        return b2b_render_app( 'message', array( 'message' => 'Access denied.' ) );
     }
 
     $event_types = get_terms(
@@ -156,7 +123,7 @@ function b2b_manage_event_shortcode() {
             : '';
 
         if ( ! wp_verify_nonce( $nonce, 'b2b_save_event_' . $event_id ) ) {
-            return '<p>Security check failed.</p>';
+            return b2b_render_app( 'message', array( 'message' => 'Security check failed.' ) );
         }
 
         $event_title = isset( $_POST['event_title'] ) &&
@@ -288,7 +255,7 @@ function b2b_manage_event_shortcode() {
                 'b2b_add_registration_field_' . $event_id
             )
         ) {
-            return '<p>Security check failed.</p>';
+            return b2b_render_app( 'message', array( 'message' => 'Security check failed.' ) );
         }
 
         $label = isset( $_POST['field_label'] ) &&
@@ -304,7 +271,7 @@ function b2b_manage_event_shortcode() {
         $allowed_types = array( 'text', 'email', 'number' );
 
         if ( '' === $label || ! in_array( $type, $allowed_types, true ) ) {
-            return '<p>Invalid registration field.</p>';
+            return b2b_render_app( 'message', array( 'message' => 'Invalid registration field.' ) );
         }
 
         $fields = b2b_get_event_registration_fields( $event_id );
@@ -331,403 +298,25 @@ function b2b_manage_event_shortcode() {
         $message = 'Registration field added successfully.';
     }
 
-    ob_start();
-    ?>
+    $registration_fields = b2b_get_event_registration_fields( $event_id );
+    $registration_rows = array();
+    foreach ( b2b_get_event_registrations( $event_id ) as $registration ) {
+        $registration_rows[] = array(
+            'id'      => $registration->ID,
+            'date'    => get_the_date( 'Y-m-d H:i', $registration ),
+            'status'  => get_post_meta( $registration->ID, 'registration_status', true ),
+            'answers' => b2b_registration_answer_rows(
+                $registration_fields,
+                get_post_meta( $registration->ID, 'registration_answers', true )
+            ),
+        );
+    }
 
-    <div class="b2b-manage-event">
-
-        <h2>Manage: <?php echo esc_html( $event->post_title ); ?></h2>
-
-        <p>
-            <a href="<?php echo esc_url( get_permalink( $event_id ) ); ?>">
-                View Event
-            </a>
-        </p>
-
-        <?php if ( ! empty( $message ) ) : ?>
-
-            <p>
-                <?php echo esc_html( $message ); ?>
-            </p>
-
-        <?php endif; ?>
-
-        <form method="post">
-
-            <?php wp_nonce_field( 'b2b_save_event_' . $event_id, 'b2b_event_nonce' ); ?>
-
-            <input type="hidden" name="b2b_save_event" value="1">
-
-            <p>
-                <label for="event_title">
-                    <strong>Event Title</strong>
-                </label>
-            </p>
-
-            <p>
-                <input
-                    type="text"
-                    id="event_title"
-                    name="event_title"
-                    value="<?php echo esc_attr( $event->post_title ); ?>"
-                    required
-                >
-            </p>
-
-            <p>
-                <label for="event_description">
-                    <strong>Description</strong>
-                </label>
-            </p>
-
-            <p>
-                <textarea
-                    id="event_description"
-                    name="event_description"
-                    rows="8"
-                ><?php echo esc_textarea( $event->post_content ); ?></textarea>
-            </p>
-
-            <p>
-                <label for="event_type">
-                    <strong>Event Type</strong>
-                </label>
-            </p>
-
-            <p>
-                <select
-                    id="event_type"
-                    name="event_type"
-                >
-
-                    <option value="">
-                        Select Event Type
-                    </option>
-
-                    <?php foreach ( $event_types as $event_type ) : ?>
-
-                        <option
-                            value="<?php echo esc_attr( $event_type->term_id ); ?>"
-                            <?php selected( $selected_event_type, $event_type->term_id ); ?>
-                        >
-                            <?php echo esc_html( $event_type->name ); ?>
-                        </option>
-
-                    <?php endforeach; ?>
-
-                </select>
-            </p>
-
-            <p>
-                <label for="start_date">
-                    <strong>Start Date</strong>
-                </label>
-            </p>
-
-            <p>
-                <input
-                    type="date"
-                    id="start_date"
-                    name="start_date"
-                    value="<?php echo esc_attr( $data['start_date'] ); ?>"
-                >
-            </p>
-
-            <p>
-                <label for="end_date">
-                    <strong>End Date</strong>
-                </label>
-            </p>
-
-            <p>
-                <input
-                    type="date"
-                    id="end_date"
-                    name="end_date"
-                    value="<?php echo esc_attr( $data['end_date'] ); ?>"
-                >
-            </p>
-
-            <p>
-                <label for="location">
-                    <strong>Location</strong>
-                </label>
-            </p>
-
-            <p>
-                <input
-                    type="text"
-                    id="location"
-                    name="location"
-                    value="<?php echo esc_attr( $data['location'] ); ?>"
-                >
-            </p>
-
-            <p>
-                <label for="city">
-                    <strong>City</strong>
-                </label>
-            </p>
-
-            <p>
-                <input
-                    type="text"
-                    id="city"
-                    name="city"
-                    value="<?php echo esc_attr( $data['city'] ); ?>"
-                >
-            </p>
-
-            <p>
-                <label for="country">
-                    <strong>Country</strong>
-                </label>
-            </p>
-
-            <p>
-                <input
-                    type="text"
-                    id="country"
-                    name="country"
-                    value="<?php echo esc_attr( $data['country'] ); ?>"
-                >
-            </p>
-
-            <p>
-                <button type="submit">Save Changes</button>
-            </p>
-
-        </form>
-
-    </div>
-
-    <h2>Registration Form Builder</h2>
-
-    <?php
-        $registration_fields = b2b_get_event_registration_fields( $event_id );
-        ?>
-
-        <?php if ( ! empty( $registration_fields ) ) : ?>
-
-            <h3>Existing Registration Fields</h3>
-
-            <ul>
-                <?php foreach ( $registration_fields as $field ) : ?>
-
-                    <li>
-                        <strong>
-                            <?php echo esc_html( $field['label'] ); ?>
-                        </strong>
-
-                        — <?php echo esc_html( $field['type'] ); ?>
-
-                        <?php if ( ! empty( $field['required'] ) ) : ?>
-                            (Required)
-                        <?php endif; ?>
-                    </li>
-
-                <?php endforeach; ?>
-            </ul>
-
-        <?php else : ?>
-
-            <p>No registration fields added yet.</p>
-
-        <?php endif; ?>
-
-<form method="post">
-
-    <?php
-    wp_nonce_field(
-        'b2b_add_registration_field_' . $event_id,
-        'b2b_registration_nonce'
+    return b2b_render_app(
+        'manage-event',
+        compact( 'event_id', 'event', 'data', 'message', 'event_types', 'selected_event_type', 'registration_fields', 'registration_rows' ),
+        'events'
     );
-    ?>
-
-    <input
-        type="hidden"
-        name="b2b_add_registration_field"
-        value="1"
-    >
-
-    <p>
-        <label for="field_label">Field Label</label>
-        <input
-            type="text"
-            id="field_label"
-            name="field_label"
-            required
-        >
-    </p>
-
-    <p>
-        <label for="field_type">Field Type</label>
-        <select id="field_type" name="field_type">
-            <option value="text">Text</option>
-            <option value="email">Email</option>
-            <option value="number">Number</option>
-        </select>
-    </p>
-
-    <p>
-        <label>
-            <input type="checkbox" name="field_required" value="1">
-            Required
-        </label>
-    </p>
-
-    <button type="submit">Add Field</button>
-
-</form>
-
-<h2>Event Registrations</h2>
-
-<?php
-$registrations = b2b_get_event_registrations( $event_id );
-?>
-
-<?php if ( ! empty( $registrations ) ) : ?>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Registration ID</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Answers</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-
-        <tbody>
-            <?php foreach ( $registrations as $registration ) : ?>
-
-                <?php
-                $status = get_post_meta(
-                    $registration->ID,
-                    'registration_status',
-                    true
-                );
-                ?>
-
-                <tr>
-                    <td>
-                        <?php echo esc_html( $registration->ID ); ?>
-                    </td>
-
-                    <td>
-                        <?php
-                        echo esc_html(
-                            get_the_date( 'Y-m-d H:i', $registration )
-                        );
-                        ?>
-                    </td>
-
-                    <td>
-                        <?php echo esc_html( $status ?: 'pending' ); ?>
-                    </td>
-
-                    <td>
-                        <?php
-                        $answers = get_post_meta(
-                            $registration->ID,
-                            'registration_answers',
-                            true
-                        );
-
-                        $fields = b2b_get_event_registration_fields( $event_id );
-
-                        if ( is_array( $answers ) ) {
-
-                            foreach ( $fields as $field ) {
-
-                                if (
-                                    ! is_array( $field ) ||
-                                    empty( $field['name'] )
-                                ) {
-                                    continue;
-                                }
-
-                                $name = sanitize_key( $field['name'] );
-
-                                $label = isset( $field['label'] )
-                                    ? $field['label']
-                                    : $name;
-
-                                $value = isset( $answers[ $name ] )
-                                    && is_scalar( $answers[ $name ] )
-                                    ? (string) $answers[ $name ]
-                                    : '';
-
-                                echo '<p><strong>' .
-                                    esc_html( $label ) .
-                                    ':</strong> ' .
-                                    esc_html( $value ) .
-                                    '</p>';
-                            }
-                        }
-                        ?>
-                    </td>
-
-                    <td>
-    <?php foreach ( array(
-        'approved' => 'Approve',
-        'rejected' => 'Reject',
-        'pending' => 'Reset to Pending'
-    ) as $action_status => $button_label ) : ?>
-
-        <form method="post" style="display:inline-block; margin:4px;">
-
-            <?php
-            wp_nonce_field(
-                'b2b_update_registration_' . $registration->ID,
-                'b2b_status_nonce'
-            );
-            ?>
-
-            <input
-                type="hidden"
-                name="b2b_update_registration_status"
-                value="1"
-            >
-
-            <input
-                type="hidden"
-                name="registration_id"
-                value="<?php echo esc_attr( $registration->ID ); ?>"
-            >
-
-            <input
-                type="hidden"
-                name="new_status"
-                value="<?php echo esc_attr( $action_status ); ?>"
-            >
-
-            <button
-                type="submit"
-                <?php disabled( $status, $action_status ); ?>
-            >
-                <?php echo esc_html( $button_label ); ?>
-            </button>
-
-        </form>
-
-    <?php endforeach; ?>
-</td>
-                </tr>
-
-            <?php endforeach; ?>
-        </tbody>
-    </table>
-
-<?php else : ?>
-
-    <p>No registrations yet.</p>
-
-<?php endif; ?>
-
-    <?php
-    return ob_get_clean();
 }
 
 add_shortcode( 'b2b_manage_event', 'b2b_manage_event_shortcode' );

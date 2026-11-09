@@ -28,6 +28,20 @@ function b2b_companies_directory() {
         's' => $search,
     );
 
+    $country = isset( $_GET['country'] ) && is_string( $_GET['country'] )
+        ? sanitize_text_field( wp_unslash( $_GET['country'] ) ) : '';
+    if ( '' !== $country ) {
+        $args['meta_query'] = array( array( 'key' => 'country', 'value' => $country ) );
+    }
+    $countries = array();
+    foreach ( get_posts( array( 'post_type' => 'company', 'post_status' => 'publish', 'posts_per_page' => -1 ) ) as $listed_company ) {
+        $listed_country = get_post_meta( $listed_company->ID, 'country', true );
+        if ( is_string( $listed_country ) && '' !== $listed_country ) {
+            $countries[ $listed_country ] = $listed_country;
+        }
+    }
+    natcasesort( $countries );
+
     if ( ! empty( $industry ) ) {
 
     $args['tax_query'] = array(
@@ -48,134 +62,27 @@ function b2b_companies_directory() {
         )
     ); 
 
-    ob_start();
-
-    ?>
-
-    <form method="get" class="b2b-company-search">
-
-        <input
-            type="search"
-            name="company_search"
-            value="<?php echo esc_attr( $search ); ?>"
-            placeholder="Search companies..."
-        >
-
-        <select name="industry">
-
-            <option value="">
-                All industries
-            </option>
-
-            <?php foreach ( $industry_terms as $industry_term ) : ?>
-
-                <option
-                    value="<?php echo esc_attr( $industry_term->slug ); ?>"
-                    <?php selected( $industry, $industry_term->slug ); ?>
-                >
-                    <?php echo esc_html( $industry_term->name ); ?>
-                </option>
-
-            <?php endforeach; ?>
-
-        </select>
-
-        <button type="submit">
-            Search
-        </button>
-
-    </form>
-
-    <?php
-
-    if ( $companies->have_posts() ) {
-
-        while ( $companies->have_posts() ) {
-
-            $companies->the_post();
-
-            $company_id = get_the_ID();
-
-            $country = get_post_meta(
-                $company_id,
-                'country',
-                true
-            );
-
-            $city = get_post_meta(
-                $company_id,
-                'city',
-                true
-            );
-
-            $company_industries = get_the_terms(
-                $company_id,
-                'industry'
-            );
-
-            ?>
-
-            <div class="b2b-company-card">
-
-                <?php if ( has_post_thumbnail() ) : ?>
-
-                    <div class="b2b-company-logo">
-                        <?php the_post_thumbnail( 'medium' ); ?>
-                    </div>
-
-                <?php endif; ?>
-
-                <h3>
-                    <?php echo esc_html( get_the_title() ); ?>
-                </h3>
-
-                <?php if ( ! empty( $company_industries ) && ! is_wp_error( $company_industries ) ) : ?>
-
-                    <p>
-                        <strong>Industry:</strong>
-                        <?php echo esc_html( $company_industries[0]->name ); ?>
-                    </p>
-
-                <?php endif; ?>
-
-                <?php if ( ! empty( $country ) ) : ?>
-
-                    <p>
-                        <strong>Country:</strong>
-                        <?php echo esc_html( $country ); ?>
-                    </p>
-
-                <?php endif; ?>
-
-                <?php if ( ! empty( $city ) ) : ?>
-
-                    <p>
-                        <strong>City:</strong>
-                        <?php echo esc_html( $city ); ?>
-                    </p>
-
-                <?php endif; ?>
-
-                <p>
-                    <a href="<?php echo esc_url( get_permalink( $company_id ) ); ?>">
-                        View Company
-                    </a>
-                </p>
-
-
-            </div>
-
-            <?php
-        }
-
-    } else {
-
-        echo '<p>No companies found.</p>';
+    $company_cards = array();
+    while ( $companies->have_posts() ) {
+        $companies->the_post();
+        $company_id = get_the_ID();
+        $company_cards[] = array(
+            'title'      => get_the_title(),
+            'description' => wp_strip_all_tags( get_post( $company_id )->post_content ),
+            'url'        => get_permalink( $company_id ),
+            'logo'       => has_post_thumbnail() ? get_the_post_thumbnail( $company_id, 'medium' ) : '',
+            'country'    => get_post_meta( $company_id, 'country', true ),
+            'city'       => get_post_meta( $company_id, 'city', true ),
+            'industries' => get_the_terms( $company_id, 'industry' ),
+        );
     }
-
     wp_reset_postdata();
 
-    return ob_get_clean();
+    return b2b_render_app(
+        'companies-directory',
+        compact( 'search', 'industry', 'industry_terms', 'company_cards', 'country', 'countries' ),
+        'companies'
+    );
 }
 
 add_shortcode(
