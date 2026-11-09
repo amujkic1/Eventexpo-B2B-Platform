@@ -15,10 +15,10 @@ $pending = count( array_filter( $registration_rows, function ( $row ) { return '
         <button type="button" id="ee-details-tab" role="tab" aria-controls="ee-event-details" aria-selected="false">Event details</button>
     </div>
     <section id="ee-registrations" role="tabpanel" aria-labelledby="ee-registrations-tab">
-        <?php echo b2b_render_template( 'event-registrations', compact( 'registration_rows' ) ); ?>
+        <?php echo b2b_render_template( 'registrations/event-registrations', compact( 'registration_rows' ) ); ?>
     </section>
     <section id="ee-registration-fields" role="tabpanel" aria-labelledby="ee-fields-tab">
-        <?php echo b2b_render_template( 'event-registration-fields', compact( 'event_id', 'registration_fields' ) ); ?>
+        <?php echo b2b_render_template( 'registrations/event-registration-fields', compact( 'event_id', 'registration_fields' ) ); ?>
     </section>
     <section id="ee-event-details" role="tabpanel" aria-labelledby="ee-details-tab">
         <form method="post" action="#ee-event-details" class="ee-form">

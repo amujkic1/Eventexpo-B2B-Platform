@@ -79,7 +79,7 @@ function b2b_companies_directory() {
     wp_reset_postdata();
 
     return b2b_render_app(
-        'companies-directory',
+        'companies/companies-directory',
         compact( 'search', 'industry', 'industry_terms', 'company_cards', 'country', 'countries' ),
         'companies'
     );

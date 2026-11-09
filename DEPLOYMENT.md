@@ -38,3 +38,9 @@ Uploads replace matching files but do not delete remote files. A failed upload
 can leave a partially updated plugin; fix the error and rerun the workflow.
 Renamed or removed files must be cleaned up separately. This workflow updates
 plugin code only; it does not migrate the WordPress database.
+
+Feature folders under `includes` and `templates`, and the `assets/css` and
+`assets/js` folders, are uploaded recursively. The plugin entry point uploads
+last so that newly referenced files are present before switching the bootstrap.
+After the folder reorganization, legacy files at the old paths remain on the
+server but are no longer loaded by the plugin.

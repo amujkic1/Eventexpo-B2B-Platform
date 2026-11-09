@@ -22,7 +22,7 @@ function b2b_event_public_profile( $event_id ) {
         ! $event ||
         'event' !== $event->post_type
     ) {
-        return b2b_render_app( 'message', array( 'message' => 'Event not found.' ) );
+        return b2b_render_app( 'shared/message', array( 'message' => 'Event not found.' ) );
     }
 
     $start_date = $data['start_date'];
@@ -41,7 +41,7 @@ function b2b_event_public_profile( $event_id ) {
     $registration_form = b2b_render_event_registration_form( $event_id );
 
     return b2b_render_app(
-        'event-public',
+        'events/event-public',
         compact( 'event_id', 'event', 'can_manage', 'start_date', 'end_date', 'location', 'city', 'country', 'organizer_company_id', 'event_types', 'organizer_company', 'registration_form' ),
         'events'
     );
@@ -54,8 +54,8 @@ function b2b_event_single_template( $template ) {
 
     if ( is_singular( 'event' ) ) {
 
-        $custom_template = plugin_dir_path( __DIR__ )
-            . 'templates/single-event.php';
+        $custom_template = trailingslashit( dirname( __DIR__, 2 ) )
+            . 'templates/events/single-event.php';
 
         if ( file_exists( $custom_template ) ) {
             return $custom_template;

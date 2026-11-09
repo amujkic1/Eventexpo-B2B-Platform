@@ -10,5 +10,5 @@ if ( ! defined( 'ABSPATH' ) ) {
 <?php if ( ! $has_answers ) : ?>
     <p>No answers available.</p>
 <?php else : ?>
-    <?php echo b2b_render_template( 'registration-answers', compact( 'answer_rows' ) ); ?>
+    <?php echo b2b_render_template( 'registrations/registration-answers', compact( 'answer_rows' ) ); ?>
 <?php endif; ?>
