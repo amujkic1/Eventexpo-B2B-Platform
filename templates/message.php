@@ -1,6 +1,4 @@
 <?php
-if ( ! defined( 'ABSPATH' ) ) {
-    exit;
-}
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 ?>
-<p><?php echo esc_html( $message ); ?></p>
+<div class="ee-notice" role="status"><?php echo esc_html( $message ); ?></div>

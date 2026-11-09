@@ -310,15 +310,10 @@ function b2b_user_can_manage_event( $user_id, $event_id ) {
  */
 function b2b_get_manage_event_url( $event_id ) {
 
-    $page_path = apply_filters(
-        'b2b_manage_event_page_path',
-        'manage-event'
-    );
-
     return add_query_arg(
         'event_id',
         absint( $event_id ),
-        home_url( '/' . trailingslashit( $page_path ) )
+        b2b_page_url( 'b2b_manage_event', 'manage-event' )
     );
 }
 

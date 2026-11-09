@@ -17,7 +17,7 @@ function b2b_company_public_profile( $company_id ) {
         ! $company ||
         'company' !== $company->post_type
     ) {
-        return b2b_render_template( 'message', array( 'message' => 'Company not found.' ) );
+        return b2b_render_app( 'message', array( 'message' => 'Company not found.' ) );
     }
 
     $website = $data['website'];
@@ -32,9 +32,10 @@ function b2b_company_public_profile( $company_id ) {
         'industry'
     );
 
-    return b2b_render_template(
+    return b2b_render_app(
         'company-public',
-        compact( 'company_id', 'company', 'website', 'email', 'phone', 'country', 'city', 'address', 'industries' )
+        compact( 'company_id', 'company', 'website', 'email', 'phone', 'country', 'city', 'address', 'industries' ),
+        'companies'
     );
 }
 

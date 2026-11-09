@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 function b2b_my_company() {
 
     if ( ! is_user_logged_in() ) {
-        return b2b_render_template( 'message', array( 'message' => 'Please log in to view your company.' ) );
+        return b2b_render_app( 'message', array( 'message' => 'Please log in to view your company.' ) );
     }
 
     $user_id = get_current_user_id();
@@ -26,7 +26,7 @@ function b2b_my_company() {
     );
 
     if ( empty( $company_id ) ) {
-        return b2b_render_template( 'message', array( 'message' => 'No company profile is connected to your account.' ) );
+        return b2b_render_app( 'message', array( 'message' => 'No company profile is connected to your account.' ) );
     }
 
     $data = b2b_get_company_data( $company_id );
@@ -38,7 +38,7 @@ function b2b_my_company() {
         'company' !== $company->post_type ||
         (int) $company->post_author !== $user_id
     ) {
-        return b2b_render_template( 'message', array( 'message' => 'You do not have permission to access this company.' ) );
+        return b2b_render_app( 'message', array( 'message' => 'You do not have permission to access this company.' ) );
     }
 
     $website = $data['website'];
@@ -248,9 +248,10 @@ function b2b_my_company() {
         }
     }
 
-    return b2b_render_template(
+    return b2b_render_app(
         'company-profile',
-        compact( 'company_id', 'company', 'website', 'email', 'phone', 'country', 'city', 'address', 'industries', 'selected_industry', 'message' )
+        compact( 'company_id', 'company', 'website', 'email', 'phone', 'country', 'city', 'address', 'industries', 'selected_industry', 'message' ),
+        'companies'
     );
 }
 

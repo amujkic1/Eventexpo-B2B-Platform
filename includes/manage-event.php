@@ -16,9 +16,10 @@ function b2b_manage_event_list() {
         $event_dates[ $event->ID ] = get_post_meta( $event->ID, 'start_date', true );
     }
 
-    return b2b_render_template(
+    return b2b_render_app(
         'manage-event-list',
-        compact( 'events', 'event_dates' )
+        compact( 'events', 'event_dates' ),
+        'events'
     );
 }
 
@@ -28,7 +29,7 @@ function b2b_manage_event_list() {
 function b2b_manage_event_shortcode() {
 
     if ( ! is_user_logged_in() ) {
-        return b2b_render_template( 'message', array( 'message' => 'Please log in to manage an event.' ) );
+        return b2b_render_app( 'message', array( 'message' => 'Please log in to manage an event.' ) );
     }
 
     $event_id = isset( $_GET['event_id'] )
@@ -40,14 +41,14 @@ function b2b_manage_event_shortcode() {
     }
 
     if ( get_post_type( $event_id ) !== 'event' ) {
-        return b2b_render_template( 'message', array( 'message' => 'Invalid event.' ) );
+        return b2b_render_app( 'message', array( 'message' => 'Invalid event.' ) );
     }
 
     if ( ! b2b_user_can_manage_event(
         get_current_user_id(),
         $event_id
     ) ) {
-        return b2b_render_template( 'message', array( 'message' => 'Access denied.' ) );
+        return b2b_render_app( 'message', array( 'message' => 'Access denied.' ) );
     }
 
     $event_types = get_terms(
@@ -122,7 +123,7 @@ function b2b_manage_event_shortcode() {
             : '';
 
         if ( ! wp_verify_nonce( $nonce, 'b2b_save_event_' . $event_id ) ) {
-            return b2b_render_template( 'message', array( 'message' => 'Security check failed.' ) );
+            return b2b_render_app( 'message', array( 'message' => 'Security check failed.' ) );
         }
 
         $event_title = isset( $_POST['event_title'] ) &&
@@ -254,7 +255,7 @@ function b2b_manage_event_shortcode() {
                 'b2b_add_registration_field_' . $event_id
             )
         ) {
-            return b2b_render_template( 'message', array( 'message' => 'Security check failed.' ) );
+            return b2b_render_app( 'message', array( 'message' => 'Security check failed.' ) );
         }
 
         $label = isset( $_POST['field_label'] ) &&
@@ -270,7 +271,7 @@ function b2b_manage_event_shortcode() {
         $allowed_types = array( 'text', 'email', 'number' );
 
         if ( '' === $label || ! in_array( $type, $allowed_types, true ) ) {
-            return b2b_render_template( 'message', array( 'message' => 'Invalid registration field.' ) );
+            return b2b_render_app( 'message', array( 'message' => 'Invalid registration field.' ) );
         }
 
         $fields = b2b_get_event_registration_fields( $event_id );
@@ -311,9 +312,10 @@ function b2b_manage_event_shortcode() {
         );
     }
 
-    return b2b_render_template(
+    return b2b_render_app(
         'manage-event',
-        compact( 'event_id', 'event', 'data', 'message', 'event_types', 'selected_event_type', 'registration_fields', 'registration_rows' )
+        compact( 'event_id', 'event', 'data', 'message', 'event_types', 'selected_event_type', 'registration_fields', 'registration_rows' ),
+        'events'
     );
 }
 

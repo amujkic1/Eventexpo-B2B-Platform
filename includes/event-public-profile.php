@@ -22,7 +22,7 @@ function b2b_event_public_profile( $event_id ) {
         ! $event ||
         'event' !== $event->post_type
     ) {
-        return b2b_render_template( 'message', array( 'message' => 'Event not found.' ) );
+        return b2b_render_app( 'message', array( 'message' => 'Event not found.' ) );
     }
 
     $start_date = $data['start_date'];
@@ -40,9 +40,10 @@ function b2b_event_public_profile( $event_id ) {
     $organizer_company = $organizer_company_id ? get_post( $organizer_company_id ) : null;
     $registration_form = b2b_render_event_registration_form( $event_id );
 
-    return b2b_render_template(
+    return b2b_render_app(
         'event-public',
-        compact( 'event_id', 'event', 'can_manage', 'start_date', 'end_date', 'location', 'city', 'country', 'organizer_company_id', 'event_types', 'organizer_company', 'registration_form' )
+        compact( 'event_id', 'event', 'can_manage', 'start_date', 'end_date', 'location', 'city', 'country', 'organizer_company_id', 'event_types', 'organizer_company', 'registration_form' ),
+        'events'
     );
 }
 
