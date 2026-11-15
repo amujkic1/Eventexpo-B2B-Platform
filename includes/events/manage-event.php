@@ -241,62 +241,15 @@ function b2b_manage_event_shortcode() {
         ? $current_event_types[0]
         : 0;
 
-    if (
-        'POST' === $_SERVER['REQUEST_METHOD'] &&
-        isset( $_POST['b2b_add_registration_field'] )
-    ) {
-        $nonce = isset( $_POST['b2b_registration_nonce'] )
-            ? sanitize_text_field( wp_unslash( $_POST['b2b_registration_nonce'] ) )
-            : '';
-
-        if (
-            ! wp_verify_nonce(
-                $nonce,
-                'b2b_add_registration_field_' . $event_id
-            )
-        ) {
-            return b2b_render_app( 'shared/message', array( 'message' => 'Security check failed.' ) );
-        }
-
-        $label = isset( $_POST['field_label'] ) &&
-            is_string( $_POST['field_label'] )
-            ? sanitize_text_field( wp_unslash( $_POST['field_label'] ) )
-            : '';
-
-        $type = isset( $_POST['field_type'] ) &&
-            is_string( $_POST['field_type'] )
-            ? sanitize_key( wp_unslash( $_POST['field_type'] ) )
-            : '';
-
-        $allowed_types = array( 'text', 'email', 'number' );
-
-        if ( '' === $label || ! in_array( $type, $allowed_types, true ) ) {
-            return b2b_render_app( 'shared/message', array( 'message' => 'Invalid registration field.' ) );
-        }
-
-        $fields = b2b_get_event_registration_fields( $event_id );
-
-        $field_name = 'field_' . str_replace(
-            '-',
-            '',
-            wp_generate_uuid4()
-        );
-
-        $fields[] = array(
-            'name'     => $field_name,
-            'label'    => $label,
-            'type'     => $type,
-            'required' => ! empty( $_POST['field_required'] ),
-        );
-
-        update_post_meta(
-            $event_id,
-            'registration_fields',
-            $fields
-        );
-
-        $message = 'Registration field added successfully.';
-    }
+    $field_messages = array(
+        'added' => 'Registration field added successfully.',
+        'updated' => 'Registration field updated successfully.',
+        'deleted' => 'Registration field deleted. Historical answers are preserved.',
+    );
+    $field_result = isset( $_GET['field_result'] ) && is_string( $_GET['field_result'] ) ? $_GET['field_result'] : '';
+    if ( isset( $field_messages[ $field_result ] ) ) { $message = $field_messages[ $field_result ]; }
+    $field_failure = $GLOBALS['b2b_field_failure'] ?? array();
+    if ( $field_failure ) { $message = $field_failure['message']; }
 
     $registration_fields = b2b_get_event_registration_fields( $event_id );
     $registration_search = isset( $_GET['registration_search'] ) && is_string( $_GET['registration_search'] ) ? sanitize_text_field( wp_unslash( $_GET['registration_search'] ) ) : '';
@@ -311,16 +264,13 @@ function b2b_manage_event_shortcode() {
             'id'      => $registration->ID,
             'date'    => get_the_date( 'Y-m-d H:i', $registration ),
             'status'  => get_post_meta( $registration->ID, 'registration_status', true ),
-            'answers' => b2b_registration_answer_rows(
-                $registration_fields,
-                get_post_meta( $registration->ID, 'registration_answers', true )
-            ),
+            'answers' => b2b_get_registration_answer_rows( $registration->ID, $event_id ),
         );
     }
 
     return b2b_render_app(
         'events/manage-event',
-        compact( 'event_id', 'event', 'data', 'message', 'event_types', 'selected_event_type', 'registration_fields', 'registration_rows', 'registration_results', 'registration_search', 'registration_status', 'registration_url' ),
+        compact( 'event_id', 'event', 'data', 'message', 'event_types', 'selected_event_type', 'registration_fields', 'registration_rows', 'registration_results', 'registration_search', 'registration_status', 'registration_url', 'field_failure' ),
         'events'
     );
 }

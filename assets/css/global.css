@@ -246,3 +246,16 @@ body.ee-app-page .ee-app :is(.ee-brand, .ee-user, .ee-button, .ee-nav a):hover {
   .ee-app .ee-button, .ee-app .ee-icon-button { min-height: 44px; }
   .ee-app .ee-tabs button { min-height: 44px; }
 }
+
+/* Registration builder: native disclosure controls work with or without JS. */
+.ee-builder-add { margin-top: 20px; }
+.ee-builder-fields > li { display: block; }
+.ee-field-summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.ee-field-controls { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 8px; }
+.ee-field-controls details { min-width: 0; }
+.ee-field-controls details[open] { flex: 1 1 100%; }
+.ee-field-controls summary { cursor: pointer; color: var(--ee-primary); padding: 10px 0; font-size: 14px; font-weight: 500; }
+.ee-field-controls .ee-field-delete summary { color: #a82c21; }
+.ee-field-controls .ee-form { padding: 16px; border: 1px solid var(--ee-line); background: #fff; gap: 16px; }
+.ee-field-controls .ee-form .ee-button { justify-self: start; }
+.ee-app summary:focus-visible { outline: 2px solid var(--ee-primary); outline-offset: 3px; }

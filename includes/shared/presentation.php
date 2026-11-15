@@ -47,18 +47,28 @@ function b2b_registration_answer_rows( array $fields, $answers ) {
         return $rows;
     }
 
+    $seen = array();
     foreach ( $fields as $field ) {
         if ( ! is_array( $field ) || empty( $field['name'] ) ) {
             continue;
         }
 
         $name = sanitize_key( $field['name'] );
+        if ( ! array_key_exists( $name, $answers ) ) { continue; }
+        $seen[ $name ] = true;
         $rows[] = array(
             'label' => isset( $field['label'] ) ? $field['label'] : $name,
             'value' => isset( $answers[ $name ] ) && is_scalar( $answers[ $name ] )
                 ? (string) $answers[ $name ]
                 : '',
         );
+    }
+
+    // Legacy or externally removed field definitions must not hide stored answers.
+    foreach ( $answers as $name => $value ) {
+        if ( ! isset( $seen[ $name ] ) && is_scalar( $value ) ) {
+            $rows[] = array( 'label' => (string) $name . ' (historical field)', 'value' => (string) $value );
+        }
     }
 
     return $rows;

@@ -83,6 +83,8 @@ function b2b_save_event_registration( $event_id, $answers ) {
         'pending'
     );
 
+    update_post_meta( $registration_id, 'registration_field_snapshot', b2b_get_event_registration_fields( $event_id ) );
+
     return $registration_id;
 }
 
@@ -134,8 +136,7 @@ function b2b_render_registration_details_meta_box( $post ) {
         ? $event->post_title
         : 'Unknown event';
     $has_answers = is_array( $answers ) && ! empty( $answers );
-    $fields = $has_answers ? b2b_get_event_registration_fields( $event_id ) : array();
-    $answer_rows = b2b_registration_answer_rows( $fields, $answers );
+    $answer_rows = b2b_get_registration_answer_rows( $post->ID, $event_id );
 
     echo b2b_render_template(
         'admin/registration-details',
