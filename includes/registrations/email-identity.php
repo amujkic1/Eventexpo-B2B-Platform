@@ -60,20 +60,41 @@ function b2b_email_table() {
     return $wpdb->prefix . 'b2b_registration_emails';
 }
 
-/** Fail closed on non-transactional engines; never convert production tables. */
-function b2b_email_storage_ready() {
+/** Read-only diagnostics; SHOW fallback supports restricted shared-host accounts. */
+function b2b_email_storage_diagnostics() {
     global $wpdb;
-    if ( '1' !== get_option( 'b2b_email_schema_version' ) ) { return false; }
     $suppressed = $wpdb->suppress_errors( true );
+    $results = array();
     try {
-        foreach ( array( $wpdb->posts, $wpdb->postmeta, b2b_email_table() ) as $table ) {
+        foreach ( array( 'WordPress posts' => $wpdb->posts, 'WordPress metadata' => $wpdb->postmeta, 'Email uniqueness index' => b2b_email_table() ) as $role => $table ) {
             $engine = $wpdb->get_var( $wpdb->prepare( 'SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s', $table ) );
-            if ( 'innodb' !== strtolower( (string) $engine ) ) { return false; }
+            if ( ! $engine ) {
+                $status = $wpdb->get_row( $wpdb->prepare( 'SHOW TABLE STATUS WHERE Name = %s', $table ), ARRAY_A );
+                $engine = is_array( $status ) ? ( $status['Engine'] ?? '' ) : '';
+            }
+            $results[ $role ] = is_string( $engine ) && preg_match( '/^[a-zA-Z0-9_]+$/D', $engine ) ? $engine : 'Unavailable';
         }
-        return true;
+        return $results;
     } finally {
         $wpdb->suppress_errors( $suppressed );
     }
+}
+
+function b2b_email_storage_check() {
+    foreach ( b2b_email_storage_diagnostics() as $role => $engine ) {
+        if ( 'Unavailable' === $engine ) {
+            return new WP_Error( 'table_unavailable', $role . ' could not be found or inspected. Ask your host to check table access and CREATE/ALTER permissions for the WordPress database user.' );
+        }
+        if ( 'innodb' !== strtolower( $engine ) ) {
+            return new WP_Error( 'non_transactional_table', $role . ' uses ' . $engine . ', but InnoDB is required. Ask your host to review and convert the affected table after confirming your backup. EventExpo does not convert it automatically.' );
+        }
+    }
+    return true;
+}
+
+/** Fail closed on non-transactional engines; never convert production tables. */
+function b2b_email_storage_ready() {
+    return '1' === get_option( 'b2b_email_schema_version' ) && true === b2b_email_storage_check();
 }
 
 function b2b_install_email_storage() {
@@ -89,7 +110,9 @@ function b2b_install_email_storage() {
         KEY registration_id (registration_id)
     ) ENGINE=InnoDB $charset;" );
     update_option( 'b2b_email_schema_version', '1', false );
-    if ( ! b2b_email_storage_ready() ) { return new WP_Error( 'storage_unavailable', 'Email storage requires InnoDB for the posts, postmeta and email index tables.' ); }
+    $check = b2b_email_storage_check();
+    if ( is_wp_error( $check ) ) { return $check; }
+    if ( '1' !== get_option( 'b2b_email_schema_version' ) ) { return new WP_Error( 'schema_version_failed', 'The database could not save the schema version. Check WordPress options-table write permissions.' ); }
     return true;
 }
 
@@ -119,10 +142,14 @@ function b2b_legacy_registration_emails( $registration_id, $event_id ) {
 function b2b_migrate_registration_emails() {
     global $wpdb;
     $lock = 'ee-email-migrate-' . md5( $wpdb->prefix );
-    if ( '1' !== (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', $lock ) ) ) {
-        return new WP_Error( 'migration_busy', 'Another migration is running.' );
-    }
     $suppressed = $wpdb->suppress_errors( true );
+    $acquired = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', $lock ) );
+    if ( '1' !== (string) $acquired ) {
+        $wpdb->suppress_errors( $suppressed );
+        return new WP_Error( '0' === (string) $acquired ? 'migration_busy' : 'lock_unavailable', '0' === (string) $acquired
+            ? 'Another migration or registration write is running. Wait briefly and retry.'
+            : 'The database could not acquire the migration lock. Ask your host whether MySQL GET_LOCK and RELEASE_LOCK are supported for this database user.' );
+    }
     $reconnect_retries = $wpdb->reconnect_retries;
     // wpdb normally retries a lost query on a new, autocommit connection.
     // That would escape our transaction. Let connection loss fail instead.
@@ -181,7 +208,16 @@ function b2b_migrate_registration_emails() {
     } catch ( Throwable $error ) {
         $wpdb->query( 'ROLLBACK' );
         if ( isset( $id ) ) { clean_post_cache( $id ); }
-        return new WP_Error( 'migration_failed', 'Email migration did not finish. Existing registrations are intact. Fix database access and rerun the migration.' );
+        $messages = array(
+            'read' => 'Could not read the registrations list. Check database read permissions.',
+            'transaction' => 'Could not start a database transaction. Ask your host to check transaction support.',
+            'claim' => 'Could not write to the email uniqueness index. Check its schema and INSERT/UPDATE permissions.',
+            'metadata' => 'Could not save normalized email metadata. Check postmeta write permissions and metadata-filter plugins.',
+            'review' => 'Could not save migration review flags. Check postmeta write permissions and metadata-filter plugins.',
+            'commit' => 'Could not commit a migration transaction. Check database connectivity and transaction support.',
+            'version' => 'Could not save migration completion. Check options-table write permissions.',
+        );
+        return new WP_Error( 'migration_failed', $messages[ $error->getMessage() ] ?? 'Migration stopped unexpectedly. Ask your host to inspect the PHP error log; do not share logs containing attendee data.' );
     } finally {
         $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
         $wpdb->reconnect_retries = $reconnect_retries;
@@ -250,6 +286,7 @@ function b2b_save_unique_registration( $event_id, array $answers ) {
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
     WP_CLI::add_command( 'eventexpo registrations-migrate', function () {
         $result = b2b_migrate_registration_emails();
+        b2b_record_email_migration_result( $result );
         if ( is_wp_error( $result ) ) { WP_CLI::error( $result->get_error_message() ); }
         WP_CLI::success( wp_json_encode( $result ) );
     } );
@@ -277,7 +314,19 @@ function b2b_email_review_page() {
     echo '<div class="wrap"><h1>Registration email review</h1><p>Migration preserves all historical answers and reserves every usable legacy email. Multiple possible addresses and existing duplicates require manual review. Missing addresses cannot be matched retrospectively.</p>';
     $result = isset( $_GET['migration'] ) && is_string( $_GET['migration'] ) ? $_GET['migration'] : '';
     if ( 'complete' === $result ) { echo '<div class="notice notice-success"><p>Migration complete. Review any records listed below.</p></div>'; }
-    if ( 'failed' === $result ) { echo '<div class="notice notice-error"><p>Migration could not finish. Check database permissions and InnoDB support, then rerun. Existing registrations remain intact.</p></div>'; }
+    $last_error = get_option( 'b2b_email_migration_error', array() );
+    if ( 'failed' === $result || $last_error ) {
+        echo '<div class="notice notice-error"><p>Migration could not finish. Existing registrations remain intact.</p>';
+        if ( is_array( $last_error ) && isset( $last_error['message'], $last_error['code'] ) ) {
+            echo '<p><strong>Reason:</strong> ' . esc_html( $last_error['message'] ) . ' <code>' . esc_html( $last_error['code'] ) . '</code></p>';
+        }
+        echo '</div>';
+    }
+    echo '<h2>Database checks (read only)</h2><ul>';
+    foreach ( b2b_email_storage_diagnostics() as $role => $engine ) {
+        echo '<li>' . esc_html( $role ) . ': <strong>' . esc_html( $engine ) . '</strong></li>';
+    }
+    echo '</ul><p>All three tables must use InnoDB. An unavailable email index before the first successful installation may indicate missing CREATE permissions. These checks do not alter table engines.</p>';
     echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
     wp_nonce_field( 'b2b_migrate_emails' );
     echo '<input type="hidden" name="action" value="b2b_migrate_emails">';
@@ -298,6 +347,16 @@ add_action( 'admin_post_b2b_migrate_emails', function () {
     if ( ! current_user_can( 'manage_options' ) ) { wp_die( 'Access denied.', '', array( 'response' => 403 ) ); }
     check_admin_referer( 'b2b_migrate_emails' );
     $result = b2b_migrate_registration_emails();
+    b2b_record_email_migration_result( $result );
     wp_safe_redirect( add_query_arg( array( 'page' => 'b2b-email-review', 'migration' => is_wp_error( $result ) ? 'failed' : 'complete' ), admin_url( 'tools.php' ) ), 303 );
     exit;
 } );
+
+/** Store only our safe error message, never SQL, email addresses or exception text. */
+function b2b_record_email_migration_result( $result ) {
+    if ( is_wp_error( $result ) ) {
+        update_option( 'b2b_email_migration_error', array( 'code' => $result->get_error_code(), 'message' => $result->get_error_message() ), false );
+    } else {
+        delete_option( 'b2b_email_migration_error' );
+    }
+}
