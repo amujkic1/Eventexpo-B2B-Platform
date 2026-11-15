@@ -2,6 +2,35 @@
  * ui.css supplies existing component structure; this file owns the programme
  * direction's tokens and visual treatments. All rules stay inside the app.
  */
+/* App routes own their document layout, independently of the active WP theme. */
+body.ee-app-page {
+  --ee-admin-bar-height: 0px;
+  display: block;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: none;
+  background: #f6f7f8;
+}
+body.ee-app-page.admin-bar { --ee-admin-bar-height: 32px; }
+body.ee-app-page > .ee-app {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - var(--ee-admin-bar-height));
+  min-height: calc(100svh - var(--ee-admin-bar-height));
+  margin: 0;
+  padding: 0;
+  max-width: none;
+}
+body.ee-app-page .ee-main { flex: 1; width: 100%; min-height: 0; }
+body.ee-app-page .ee-app a { text-decoration: none; }
+body.ee-app-page .ee-app a:hover { text-decoration: underline; }
+body.ee-app-page .ee-app :is(.ee-brand, .ee-user, .ee-button, .ee-nav a):hover {
+  text-decoration: none;
+}
+@media (max-width: 782px) {
+  body.ee-app-page.admin-bar { --ee-admin-bar-height: 46px; }
+}
 .ee-app {
   --ee-primary: #0f5c5a;
   --ee-primary-hover: #0a4544;

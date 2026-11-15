@@ -76,6 +76,42 @@ function b2b_enqueue_assets() {
 }
 add_action( 'wp_enqueue_scripts', 'b2b_enqueue_assets' );
 
+/** Identify app routes by their content, so custom page slugs also work. */
+function b2b_is_app_page() {
+    if ( is_singular( array( 'event', 'company' ) ) ) {
+        return true;
+    }
+    if ( ! is_page() ) {
+        return false;
+    }
+    $page = get_queried_object();
+    if ( ! $page instanceof WP_Post ) {
+        return false;
+    }
+    foreach ( array( 'b2b_dashboard', 'b2b_companies_directory', 'b2b_my_company', 'b2b_manage_event' ) as $shortcode ) {
+        if ( has_shortcode( $page->post_content, $shortcode ) ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/** Keep theme headers, page titles and content wrappers outside the app. */
+function b2b_app_page_template( $template ) {
+    return b2b_is_app_page()
+        ? dirname( __DIR__, 2 ) . '/templates/shared/document.php'
+        : $template;
+}
+add_filter( 'template_include', 'b2b_app_page_template', 99 );
+
+function b2b_app_body_class( $classes ) {
+    if ( b2b_is_app_page() ) {
+        $classes[] = 'ee-app-page';
+    }
+    return $classes;
+}
+add_filter( 'body_class', 'b2b_app_body_class' );
+
 /**
  * Resolve navigation against published shortcode pages, including custom slugs.
  */

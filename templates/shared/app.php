@@ -22,5 +22,5 @@ $account_name = $account->display_name ?: $account->user_login;
     <div class="ee-main">
         <?php echo $content; ?>
     </div>
-    <footer class="ee-footer"><div class="ee-footer-in"><span>&copy; <?php echo esc_html( wp_date( 'Y' ) ); ?> EventExpo B2B</span><nav aria-label="Footer"><a href="<?php echo esc_url( $navigation['companies']['url'] ); ?>">Companies</a><a href="<?php echo esc_url( $profile_url ); ?>">My company</a><?php if ( get_privacy_policy_url() ) : ?><a href="<?php echo esc_url( get_privacy_policy_url() ); ?>">Privacy</a><?php endif; ?></nav></div></footer>
+    <footer class="ee-footer"><div class="ee-footer-in"><span>&copy; <?php echo esc_html( wp_date( 'Y' ) ); ?> EventExpo B2B</span><nav aria-label="Footer"><a href="<?php echo esc_url( $navigation['companies']['url'] ); ?>">Companies</a><a href="<?php echo esc_url( $profile_url ); ?>">My company</a><?php if ( get_privacy_policy_url() ) : ?><a href="<?php echo esc_url( get_privacy_policy_url() ); ?>">Privacy</a><?php endif; ?><?php if ( is_user_logged_in() ) : ?><a href="<?php echo esc_url( wp_logout_url( home_url( '/' ) ) ); ?>">Log out</a><?php endif; ?></nav></div></footer>
 </div>
