@@ -11,6 +11,10 @@ Thumbs.db
 .env.*
 !.env.example
 
+# Local WordPress environment
+/compose.local.yaml
+/local/
+
 # Installed dependencies
 /vendor/
 /node_modules/

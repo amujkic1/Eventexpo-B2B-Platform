@@ -2,7 +2,8 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 ?>
 <div class="ee-page-heading"><div><h1>Companies</h1><p><?php echo esc_html( count( $company_cards ) ); ?> companies<?php echo $search || $industry || $country ? ' matching your filters' : ' in the EventExpo network'; ?></p></div></div>
-<form method="get">
+<div class="ee-directory">
+<form method="get" class="ee-directory-filters">
     <div class="ee-search-bar">
         <label class="ee-search"><span class="screen-reader-text">Search companies</span><?php echo b2b_icon( 'search' ); ?><input type="search" name="company_search" value="<?php echo esc_attr( $search ); ?>" placeholder="Search companies"></label>
         <label><span class="screen-reader-text">Country</span><select name="country"><option value="">All countries</option><?php foreach ( $countries as $option ) : ?><option value="<?php echo esc_attr( $option ); ?>" <?php selected( $country, $option ); ?>><?php echo esc_html( $option ); ?></option><?php endforeach; ?></select></label>
@@ -13,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
         <?php if ( ! is_wp_error( $industry_terms ) ) : foreach ( $industry_terms as $term ) : ?><label class="ee-chip"><input type="radio" name="industry" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( $industry, $term->slug ); ?>><span><?php echo esc_html( $term->name ); ?></span></label><?php endforeach; endif; ?>
     </fieldset>
 </form>
+<div class="ee-directory-results">
 <?php if ( $company_cards ) : ?>
 <div class="ee-grid ee-company-grid">
     <?php foreach ( $company_cards as $card ) : ?>
@@ -24,3 +26,5 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
     <?php endforeach; ?>
 </div>
 <?php else : ?><div class="ee-empty"><?php echo b2b_icon( 'search' ); ?><h2>No companies found</h2><p>No companies match the selected filters.</p><a class="ee-button ee-button-outline" href="<?php echo esc_url( b2b_page_url( 'b2b_companies_directory', 'companies' ) ); ?>">Clear filters</a></div><?php endif; ?>
+</div>
+</div>

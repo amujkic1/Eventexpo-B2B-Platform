@@ -299,8 +299,14 @@ function b2b_manage_event_shortcode() {
     }
 
     $registration_fields = b2b_get_event_registration_fields( $event_id );
+    $registration_search = isset( $_GET['registration_search'] ) && is_string( $_GET['registration_search'] ) ? sanitize_text_field( wp_unslash( $_GET['registration_search'] ) ) : '';
+    $registration_status = isset( $_GET['registration_status'] ) && is_string( $_GET['registration_status'] ) ? sanitize_key( wp_unslash( $_GET['registration_status'] ) ) : '';
+    if ( ! in_array( $registration_status, array( 'approved', 'pending', 'rejected' ), true ) ) { $registration_status = ''; }
+    $registration_page = isset( $_GET['registration_page'] ) ? max( 1, absint( $_GET['registration_page'] ) ) : 1;
+    $registration_results = b2b_get_event_registrations( $event_id, $registration_page, $registration_search, $registration_status );
+    $registration_url = add_query_arg( array( 'registration_search' => $registration_search, 'registration_status' => $registration_status, 'registration_page' => $registration_results['page'] ), b2b_get_manage_event_url( $event_id ) );
     $registration_rows = array();
-    foreach ( b2b_get_event_registrations( $event_id ) as $registration ) {
+    foreach ( $registration_results['posts'] as $registration ) {
         $registration_rows[] = array(
             'id'      => $registration->ID,
             'date'    => get_the_date( 'Y-m-d H:i', $registration ),
@@ -314,7 +320,7 @@ function b2b_manage_event_shortcode() {
 
     return b2b_render_app(
         'events/manage-event',
-        compact( 'event_id', 'event', 'data', 'message', 'event_types', 'selected_event_type', 'registration_fields', 'registration_rows' ),
+        compact( 'event_id', 'event', 'data', 'message', 'event_types', 'selected_event_type', 'registration_fields', 'registration_rows', 'registration_results', 'registration_search', 'registration_status', 'registration_url' ),
         'events'
     );
 }

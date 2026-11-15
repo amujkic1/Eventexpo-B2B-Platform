@@ -2,7 +2,7 @@
 @font-face{font-family:EventExpo Poppins;src:url(../fonts/poppins-medium.woff2) format('woff2');font-weight:500;font-style:normal;font-display:swap}
 @font-face{font-family:EventExpo Poppins;src:url(../fonts/poppins-semibold.woff2) format('woff2');font-weight:600;font-style:normal;font-display:swap}
 @font-face{font-family:EventExpo Poppins;src:url(../fonts/poppins-bold.woff2) format('woff2');font-weight:700;font-style:normal;font-display:swap}
-.ee-app{--ee-primary:#1f5e3f;--ee-primary-hover:#15442d;--ee-tint:#eef5f0;--ee-page:#f7f7fb;--ee-line:#efeff2;--ee-line-strong:#e1e1e6;--ee-ink:#33333c;--ee-body:#4f4f58;--ee-muted:#62626e;--ee-faint:#808087;background:var(--ee-page);color:var(--ee-body);font-family:'EventExpo Poppins',Poppins,Arial,sans-serif;font-size:14px;line-height:1.6;width:100%;min-width:0;isolation:isolate;letter-spacing:0}
+.ee-app{--ee-primary:#1f5e3f;--ee-primary-hover:#15442d;--ee-tint:#eef5f0;--ee-page:#f7f7fb;--ee-line:#efeff2;--ee-line-strong:#e1e1e6;--ee-ink:#33333c;--ee-body:#4f4f58;--ee-muted:#62626e;--ee-faint:#62626e;background:var(--ee-page);color:var(--ee-body);font-family:'EventExpo Poppins',Poppins,Arial,sans-serif;font-size:14px;line-height:1.6;width:100%;min-width:0;isolation:isolate;letter-spacing:0}
 .ee-app *,.ee-app *::before,.ee-app *::after{box-sizing:border-box;letter-spacing:0}
 .ee-app [hidden]{display:none!important}
 .ee-app .screen-reader-text{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
@@ -61,9 +61,9 @@
 .ee-meta{display:flex;flex-wrap:wrap;gap:6px 16px;color:var(--ee-muted);font-size:13px;margin-top:8px}
 .ee-meta>span,.ee-meta>a{display:inline-flex;align-items:center;gap:6px;min-width:0;overflow-wrap:anywhere}.ee-meta .ee-icon{width:15px;height:15px;color:var(--ee-faint)}
 .ee-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;padding:3px 10px;border-radius:999px;border:1px solid var(--ee-line-strong);background:#f9f9fa;color:var(--ee-muted);white-space:nowrap}
-.ee-badge-publish,.ee-badge-approved{background:#ecf2ed;color:#407f4a;border-color:#cee9d2}
+.ee-badge-publish,.ee-badge-approved{background:#ecf2ed;color:#32673b;border-color:#cee9d2}
 .ee-badge-pending,.ee-badge-draft{background:#fff9ec;color:#946300;border-color:#fff0d1}
-.ee-badge-rejected{background:#fff1f1;color:#c74a52;border-color:#ffd5d6}
+.ee-badge-rejected{background:#fff1f1;color:#a6323a;border-color:#ffd5d6}
 .ee-logo{width:56px;height:56px;flex:none;border:1px solid var(--ee-line);border-radius:8px;background:#f9f9fa;color:var(--ee-muted);display:grid;place-items:center;font-size:16px;font-weight:600;overflow:hidden}
 .ee-logo img{width:100%;height:100%;object-fit:contain}.ee-logo-large{width:88px;height:88px;font-size:24px}
 .ee-company-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -78,7 +78,7 @@
 .ee-chip input{position:absolute;opacity:0;width:1px;height:1px}.ee-chip span{display:block;padding:6px 12px;border-radius:999px;border:1px solid var(--ee-line-strong);background:#fff;color:var(--ee-body)}
 .ee-chip input:checked+span{background:var(--ee-tint);border-color:#8fbd9e;color:var(--ee-primary)}.ee-chip input:focus-visible+span{outline:3px solid #8fbd9e;outline-offset:2px}
 .ee-app input:where(:not([type=checkbox]):not([type=radio]):not([type=hidden])),.ee-app select,.ee-app textarea{font:400 14px/1.5 'EventExpo Poppins',Arial,sans-serif;color:var(--ee-ink);background:#fff;border:1px solid var(--ee-line-strong);border-radius:7px;min-height:44px;padding:10px 14px;width:100%;max-width:100%;box-shadow:none;margin:0}
-.ee-app input::placeholder,.ee-app textarea::placeholder{color:#b3b3ba;opacity:1}
+.ee-app input::placeholder,.ee-app textarea::placeholder{color:#6b6b76;opacity:1}
 .ee-app textarea{resize:vertical;min-height:130px}
 .ee-app input:focus,.ee-app select:focus,.ee-app textarea:focus{outline:none;border-color:var(--ee-primary);box-shadow:0 0 0 3px #dcebe1}
 .ee-app input[type=checkbox],.ee-app input[type=radio]{accent-color:var(--ee-primary);width:16px;height:16px;flex:none;margin:0}
@@ -110,3 +110,5 @@
 @media(max-width:760px){.ee-main{padding:28px 18px 48px}.ee-header-in,.ee-footer-in{padding-left:18px;padding-right:18px}.ee-header-in{gap:12px}.ee-app.ee-enhanced .ee-menu-toggle{display:inline-flex;order:3}.ee-nav{order:4;flex-basis:100%;flex-wrap:wrap;padding-bottom:14px}.ee-enhanced .ee-nav{display:none}.ee-enhanced.ee-menu-open .ee-nav{display:flex}.ee-account-name{display:none}.ee-app .ee-user{margin-left:auto}.ee-two-column{grid-template-columns:minmax(0,1fr)}.ee-page-heading{align-items:flex-start}.ee-page-heading h1{font-size:24px}.ee-card{padding:20px}.ee-event-feature{flex-wrap:wrap}.ee-event-feature .ee-button{margin-left:72px}.ee-profile-heading{gap:16px}.ee-profile-heading .ee-actions{margin-left:0;width:100%}.ee-event-item{flex-wrap:wrap}.ee-event-item .ee-actions{margin-left:74px}.ee-footer-in{gap:12px}.ee-stats{gap:12px}.ee-stat{padding-left:12px}.ee-stat strong{font-size:22px}}
 @media(max-width:480px){.ee-company-grid,.ee-fields{grid-template-columns:minmax(0,1fr)}.ee-search-bar{flex-wrap:wrap}.ee-search-bar>.ee-search{flex-basis:100%}.ee-search-bar select{max-width:none;flex:1;min-width:0}.ee-page-heading>.ee-actions{width:100%}.ee-registration-toolbar{flex-wrap:wrap}.ee-registration-toolbar .ee-search{flex-basis:100%}.ee-registration-toolbar select{max-width:none}.ee-brand{gap:7px!important}.ee-brand small{display:none}.ee-logo-large{width:68px;height:68px}.ee-stats{grid-template-columns:minmax(0,1fr);gap:14px}.ee-stat{display:flex;align-items:center;justify-content:space-between}.ee-stat strong{margin:0}.ee-footer nav{gap:14px}}
 @media(prefers-reduced-motion:reduce){.ee-app *{transition:none!important;scroll-behavior:auto!important}}
+
+.ee-notice-error{background:#fff1f1;border-color:#b4444c;color:#8f2630}.ee-notice-error ul{padding-left:20px;margin-top:8px}.ee-app .ee-notice-error a,.ee-field-error{color:#8f2630}.ee-field-error{font-size:13px}.ee-app [aria-invalid=true]{border-color:#a6323a}

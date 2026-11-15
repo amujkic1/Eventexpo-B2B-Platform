@@ -2,7 +2,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 $account_name = $account->display_name ?: $account->user_login;
 ?>
-<div class="ee-app">
+<div class="ee-app ee-view-<?php echo esc_attr( sanitize_html_class( $active ?: 'public' ) ); ?>">
     <header class="ee-header">
         <div class="ee-header-in">
             <a class="ee-brand" href="<?php echo esc_url( $navigation['dashboard']['url'] ); ?>"><span class="ee-mark">EE</span><span>EventExpo</span><small>B2B</small></a>

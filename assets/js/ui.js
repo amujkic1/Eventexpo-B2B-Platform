@@ -2,6 +2,7 @@
   const initialize = () => {
     document.querySelectorAll('.ee-app').forEach(app => {
       app.classList.add('ee-enhanced');
+      app.querySelector('[data-ee-error-summary]')?.focus();
       app.querySelector('[data-ee-menu]')?.addEventListener('click', event => {
         const button = event.currentTarget;
         const open = button.getAttribute('aria-expanded') !== 'true';
@@ -43,21 +44,6 @@
           });
         });
       });
-
-      const search = app.querySelector('[data-ee-registration-search]');
-      const status = app.querySelector('[data-ee-registration-status]');
-      const rows = [...app.querySelectorAll('[data-ee-registration-row]')];
-      const filterRows = () => {
-        let visible = 0;
-        rows.forEach(row => {
-          row.hidden = Boolean((search?.value && !row.textContent.toLowerCase().includes(search.value.toLowerCase())) || (status?.value && row.dataset.status !== status.value));
-          if (!row.hidden) visible++;
-        });
-        const empty = app.querySelector('[data-ee-filter-empty]');
-        if (empty) empty.hidden = visible > 0;
-      };
-      search?.addEventListener('input', filterRows);
-      status?.addEventListener('change', filterRows);
 
       app.querySelector('[data-ee-logo-input]')?.addEventListener('change', event => {
         const file = event.target.files[0];

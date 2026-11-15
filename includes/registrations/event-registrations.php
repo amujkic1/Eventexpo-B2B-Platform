@@ -146,33 +146,58 @@ function b2b_render_registration_details_meta_box( $post ) {
 /**
  * Get registrations for a specific event.
  */
-function b2b_get_event_registrations( $event_id ) {
-
-    if (
-        'event' !== get_post_type( $event_id ) ||
-        ! b2b_user_can_manage_event(
-            get_current_user_id(),
-            $event_id
-        )
-    ) {
-        return array();
+function b2b_get_event_registrations( $event_id, $page = 1, $search = '', $status = '' ) {
+    $empty = array( 'posts' => array(), 'total' => 0, 'pages' => 0, 'page' => 1, 'counts' => array( 'total' => 0, 'approved' => 0, 'pending' => 0 ) );
+    if ( 'event' !== get_post_type( $event_id ) || ! b2b_user_can_manage_event( get_current_user_id(), $event_id ) ) {
+        return $empty;
     }
-
-    return get_posts(
-        array(
-            'post_type'      => 'event_registration',
-            'post_status'    => 'private',
-            'posts_per_page' => 100,
-            'meta_query'     => array(
-                array(
-                    'key'     => 'event_id',
-                    'value'   => $event_id,
-                    'compare' => '=',
-                    'type'    => 'NUMERIC',
-                ),
-            ),
-        )
+    $base = array(
+        'post_type' => 'event_registration', 'post_status' => 'private',
+        'posts_per_page' => 25, 'orderby' => array( 'date' => 'DESC', 'ID' => 'DESC' ),
+        'meta_query' => array( array( 'key' => 'event_id', 'value' => $event_id, 'type' => 'NUMERIC' ) ),
     );
+    $status_clause = static function ( $value ) {
+        if ( 'pending' === $value ) {
+            return array( 'relation' => 'OR',
+                array( 'key' => 'registration_status', 'value' => 'pending' ),
+                array( 'key' => 'registration_status', 'value' => '' ),
+                array( 'key' => 'registration_status', 'compare' => 'NOT EXISTS' ),
+            );
+        }
+        return array( 'key' => 'registration_status', 'value' => $value );
+    };
+    $counts = array();
+    foreach ( array( 'total', 'approved', 'pending' ) as $count_status ) {
+        $args = $base;
+        $args['posts_per_page'] = 1;
+        $args['fields'] = 'ids';
+        if ( 'total' !== $count_status ) {
+            $args['meta_query'][] = $status_clause( $count_status );
+        }
+        $count_query = new WP_Query( $args );
+        $counts[ $count_status ] = (int) $count_query->found_posts;
+    }
+    if ( in_array( $status, array( 'pending', 'approved', 'rejected' ), true ) ) {
+        $base['meta_query'][] = $status_clause( $status );
+    }
+    if ( '' !== $search ) {
+        if ( preg_match( '/^#([1-9][0-9]*)$/D', $search, $number ) ) {
+            $base['post__in'] = array( absint( $number[1] ) );
+        } else {
+            $base['meta_query'][] = array( 'key' => 'registration_answers', 'value' => $search, 'compare' => 'LIKE' );
+        }
+    }
+    // Count from page one: WP_Query skips found_posts for an empty out-of-range page.
+    $count_args = $base;
+    $count_args['posts_per_page'] = 1;
+    $count_args['fields'] = 'ids';
+    $matches = new WP_Query( $count_args );
+    $total = (int) $matches->found_posts;
+    $pages = (int) ceil( $total / $base['posts_per_page'] );
+    $base['paged'] = min( max( 1, (int) $page ), max( 1, $pages ) );
+    $base['no_found_rows'] = true;
+    $query = new WP_Query( $base );
+    return array( 'posts' => $query->posts, 'total' => $total, 'pages' => $pages, 'page' => $base['paged'], 'counts' => $counts );
 }
 
 /**

@@ -70,6 +70,8 @@ function b2b_asset_url( $file ) {
 
 function b2b_enqueue_assets() {
     wp_enqueue_style( 'eventexpo-b2b', b2b_asset_url( 'css/ui.css' ), array(), filemtime( dirname( __DIR__, 2 ) . '/assets/css/ui.css' ) );
+    wp_enqueue_style( 'eventexpo-fonts', 'https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap', array(), null );
+    wp_enqueue_style( 'eventexpo-global', b2b_asset_url( 'css/global.css' ), array( 'eventexpo-b2b', 'eventexpo-fonts' ), filemtime( dirname( __DIR__, 2 ) . '/assets/css/global.css' ) );
     wp_enqueue_script( 'eventexpo-b2b', b2b_asset_url( 'js/ui.js' ), array(), filemtime( dirname( __DIR__, 2 ) . '/assets/js/ui.js' ), true );
 }
 add_action( 'wp_enqueue_scripts', 'b2b_enqueue_assets' );

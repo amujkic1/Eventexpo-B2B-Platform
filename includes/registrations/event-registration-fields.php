@@ -29,153 +29,54 @@ function b2b_get_event_registration_fields( $event_id ) {
  * Handle event registration before page rendering.
  */
 function b2b_handle_event_registration_request() {
-
-    if (
-        ! isset( $_SERVER['REQUEST_METHOD'] ) ||
-        'POST' !== $_SERVER['REQUEST_METHOD'] ||
-        ! isset( $_POST['b2b_submit_registration'] )
-    ) {
+    if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) || ! isset( $_POST['b2b_submit_registration'] ) ) {
         return;
     }
-
-    $event_id = isset( $_POST['b2b_registration_event_id'] )
-        ? absint( $_POST['b2b_registration_event_id'] )
-        : 0; 
-
-    if ( ! $event_id ) {
-        return;
-    }
+    $event_id = isset( $_POST['b2b_registration_event_id'] ) ? absint( $_POST['b2b_registration_event_id'] ) : 0;
+    if ( ! $event_id ) { return; }
 
     $fields = b2b_get_event_registration_fields( $event_id );
+    $answers = array();
+    $errors = array();
     $message = '';
+    $nonce = isset( $_POST['b2b_registration_submit_nonce'] ) && is_string( $_POST['b2b_registration_submit_nonce'] )
+        ? sanitize_text_field( wp_unslash( $_POST['b2b_registration_submit_nonce'] ) ) : '';
 
-    if (
-        isset( $_SERVER['REQUEST_METHOD'] ) &&
-        'POST' === $_SERVER['REQUEST_METHOD'] &&
-        isset( $_POST['b2b_submit_registration'] )
-    ) {
-        $nonce = isset( $_POST['b2b_registration_submit_nonce'] )
-            && is_string( $_POST['b2b_registration_submit_nonce'] )
-            ? sanitize_text_field(
-                wp_unslash( $_POST['b2b_registration_submit_nonce'] )
-            )
-            : '';
-
-        $submitted_event_id = isset( $_POST['b2b_registration_event_id'] )
-            ? absint( $_POST['b2b_registration_event_id'] )
-            : 0;
-
-        if (
-            $submitted_event_id !== (int) $event_id ||
-            ! wp_verify_nonce(
-                $nonce,
-                'b2b_submit_registration_' . $event_id
-            )
-        ) {
-            $message = 'Security check failed.';
-        } elseif (
-            'event' !== get_post_type( $event_id ) ||
-            'publish' !== get_post_status( $event_id )
-        ) {
-            $message = 'Registration is not available.';
-        } elseif ( empty( $fields ) ) {
-            $message = 'Registration is not available.';
+    if ( ! wp_verify_nonce( $nonce, 'b2b_submit_registration_' . $event_id ) ) {
+        $message = 'Your session expired. Please submit the form again.';
+    } elseif ( 'event' !== get_post_type( $event_id ) || 'publish' !== get_post_status( $event_id ) || ! $fields ) {
+        $message = 'Registration is not available.';
+    } else {
+        foreach ( $fields as $field ) {
+            if ( ! is_array( $field ) || empty( $field['name'] ) || ! in_array( $field['type'] ?? '', array( 'text', 'email', 'number' ), true ) ) {
+                continue;
+            }
+            $name = sanitize_key( $field['name'] );
+            $value = isset( $_POST[ $name ] ) && is_string( $_POST[ $name ] ) ? sanitize_text_field( wp_unslash( $_POST[ $name ] ) ) : '';
+            $answers[ $name ] = $value;
+            if ( ! empty( $field['required'] ) && '' === $value ) {
+                $errors[ $name ] = 'Please complete this required field.';
+            } elseif ( '' !== $value && 'email' === $field['type'] && ! is_email( $value ) ) {
+                $errors[ $name ] = 'Please enter a valid email address.';
+            } elseif ( '' !== $value && 'number' === $field['type'] && ! is_numeric( $value ) ) {
+                $errors[ $name ] = 'Please enter a valid number.';
+            }
+        }
+        if ( $errors ) {
+            $message = 'Please correct the highlighted fields.';
         } else {
-
-            $answers = array();
-            $errors  = array();
-
-            foreach ( $fields as $field ) {
-
-                if (
-                    ! is_array( $field ) ||
-                    empty( $field['name'] ) ||
-                    empty( $field['type'] )
-                ) {
-                    continue;
-                }
-
-                $name = sanitize_key( $field['name'] );
-                $type = $field['type'];
-
-                if ( ! in_array( $type, array( 'text', 'email', 'number' ), true ) ) {
-                    continue;
-                }
-
-                $raw_value = isset( $_POST[ $name ] ) &&
-                    is_string( $_POST[ $name ] )
-                    ? wp_unslash( $_POST[ $name ] )
-                    : '';
-
-                $value = sanitize_text_field( $raw_value );
-
-                if ( ! empty( $field['required'] ) && '' === $value ) {
-                    $errors[] = 'Please complete all required fields.';
-                    break;
-                }
-
-                if ( '' !== $value ) {
-                    if ( 'email' === $type && ! is_email( $value ) ) {
-                        $errors[] = 'Please enter a valid email address.';
-                        break;
-                    }
-
-                    if ( 'number' === $type && ! is_numeric( $value ) ) {
-                        $errors[] = 'Please enter a valid number.';
-                        break;
-                    }
-                }
-
-                $answers[ $name ] = $value;
-            }
-
-            if ( ! empty( $errors ) ) {
-                $message = $errors[0];
-            } else {
-
-                $result = b2b_save_event_registration(
-                    $event_id,
-                    $answers
-                );
-
+            $result = b2b_save_event_registration( $event_id, $answers );
             if ( is_wp_error( $result ) ) {
-
-                $message = 'Could not save registration.';
-
+                $message = 'Could not save registration. Your answers are retained; please try again.';
             } else {
-
-                $redirect_url = add_query_arg(
-                    'registration_success',
-                    '1',
-                    get_permalink( $event_id )
-                );
-
-                wp_safe_redirect( $redirect_url, 303 );
+                wp_safe_redirect( add_query_arg( 'registration_success', '1', get_permalink( $event_id ) ), 303 );
                 exit;
-            }
             }
         }
     }
-
-    if ( ! empty( $message ) ) {
-
-    $notice_id = wp_generate_uuid4();
-
-    set_transient(
-        'b2b_registration_notice_' . $notice_id,
-        $message,
-        5 * MINUTE_IN_SECONDS
-    );
-
-    $redirect_url = add_query_arg(
-        'registration_notice',
-        $notice_id,
-        get_permalink( $event_id )
-    );
-
-    wp_safe_redirect( $redirect_url, 303 );
-    exit;
-}
+    // Keep failures in this request: answers never enter a URL or shared cache.
+    $GLOBALS['b2b_registration_failure'] = compact( 'event_id', 'message', 'answers', 'errors' );
+    nocache_headers();
 }
 
 add_action(
@@ -189,6 +90,10 @@ add_action(
 function b2b_render_event_registration_form( $event_id ) {
 
     $fields = b2b_get_event_registration_fields( $event_id );
+    $answers = array();
+    $errors = array();
+    $failure = $GLOBALS['b2b_registration_failure'] ?? array();
+    $has_error = $failure && (int) $failure['event_id'] === (int) $event_id;
 
     $message = '';
 
@@ -199,28 +104,18 @@ function b2b_render_event_registration_form( $event_id ) {
         $message = 'Registration submitted successfully.';
     }
 
-    if ( isset( $_GET['registration_notice'] ) ) {
-
-        $notice_id = sanitize_text_field(
-            wp_unslash( $_GET['registration_notice'] )
-        );
-
-        $transient_key = 'b2b_registration_notice_' . $notice_id;
-
-        $notice = get_transient( $transient_key );
-
-        if ( false !== $notice ) {
-            $message = $notice;
-            delete_transient( $transient_key );
-        }
+    if ( $has_error ) {
+        $message = $failure['message'];
+        $answers = $failure['answers'];
+        $errors = $failure['errors'];
     }
-    
+
     if ( empty( $fields ) ) {
         return b2b_render_template( 'shared/message', array( 'message' => 'Registration is not available yet.' ) );
     }
 
     return b2b_render_template(
         'registrations/event-registration-form',
-        compact( 'event_id', 'fields', 'message' )
+        compact( 'event_id', 'fields', 'message', 'answers', 'errors', 'has_error' )
     );
 }
