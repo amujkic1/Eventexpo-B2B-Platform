@@ -38,54 +38,8 @@ add_action(
  */
 function b2b_save_event_registration( $event_id, $answers ) {
 
-    if ( 'event' !== get_post_type( $event_id ) ) {
-        return new WP_Error(
-            'invalid_event',
-            'Invalid event.'
-        );
-    }
-
-    if ( ! is_array( $answers ) ) {
-        return new WP_Error(
-            'invalid_answers',
-            'Invalid registration data.'
-        );
-    }
-
-    $registration_id = wp_insert_post(
-        array(
-            'post_type'   => 'event_registration',
-            'post_status' => 'private',
-            'post_title'  => 'Registration - Event ' . $event_id,
-        ),
-        true
-    );
-
-    if ( is_wp_error( $registration_id ) ) {
-        return $registration_id;
-    }
-
-    update_post_meta(
-        $registration_id,
-        'event_id',
-        $event_id
-    );
-
-    update_post_meta(
-        $registration_id,
-        'registration_answers',
-        $answers
-    );
-
-    update_post_meta(
-        $registration_id,
-        'registration_status',
-        'pending'
-    );
-
-    update_post_meta( $registration_id, 'registration_field_snapshot', b2b_get_event_registration_fields( $event_id ) );
-
-    return $registration_id;
+    if ( ! is_array( $answers ) ) { return new WP_Error( 'invalid_answers', 'Invalid registration data.' ); }
+    return b2b_save_unique_registration( $event_id, $answers );
 }
 
 /**

@@ -12,16 +12,24 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function b2b_get_event_registration_fields( $event_id ) {
 
-    $fields = get_post_meta(
-        $event_id,
-        'registration_fields',
-        true
-    );
-
-    if ( ! is_array( $fields ) ) {
-        return array();
+    $fields = get_post_meta( $event_id, 'registration_fields', true );
+    $fields = is_array( $fields ) ? $fields : array();
+    if ( 'event' !== get_post_type( $event_id ) ) { return $fields; }
+    $identity = b2b_attendee_email_field_name( $event_id );
+    if ( ! $identity ) { return array(); } // Fail closed if the stable mapping cannot be saved.
+    $found = false;
+    foreach ( $fields as &$field ) {
+        if ( is_array( $field ) && ( $field['name'] ?? '' ) === $identity ) {
+            $field['type'] = 'email';
+            $field['required'] = true;
+            $field['system'] = true;
+            $found = true;
+        }
     }
-
+    unset( $field );
+    if ( ! $found ) {
+        array_unshift( $fields, array( 'name' => $identity, 'label' => 'Attendee email', 'type' => 'email', 'required' => true, 'system' => true ) );
+    }
     return $fields;
 }
 
@@ -32,7 +40,7 @@ function b2b_handle_event_registration_request() {
     if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) || ! isset( $_POST['b2b_submit_registration'] ) ) {
         return;
     }
-    $event_id = isset( $_POST['b2b_registration_event_id'] ) ? absint( $_POST['b2b_registration_event_id'] ) : 0;
+    $event_id = b2b_registration_event_id( $_POST['b2b_registration_event_id'] ?? '' );
     if ( ! $event_id ) { return; }
 
     $fields = b2b_get_event_registration_fields( $event_id );
@@ -53,10 +61,12 @@ function b2b_handle_event_registration_request() {
             }
             $name = sanitize_key( $field['name'] );
             $value = isset( $_POST[ $name ] ) && is_string( $_POST[ $name ] ) ? sanitize_text_field( wp_unslash( $_POST[ $name ] ) ) : '';
+            // Validate normalized identity; retain the original answer for display.
+            $check_value = ! empty( $field['system'] ) ? b2b_normalize_attendee_email( $value ) : $value;
             $answers[ $name ] = $value;
             if ( ! empty( $field['required'] ) && '' === $value ) {
                 $errors[ $name ] = 'Please complete this required field.';
-            } elseif ( '' !== $value && 'email' === $field['type'] && ! is_email( $value ) ) {
+            } elseif ( '' !== $value && 'email' === $field['type'] && ! is_email( $check_value ) ) {
                 $errors[ $name ] = 'Please enter a valid email address.';
             } elseif ( '' !== $value && 'number' === $field['type'] && ! is_numeric( $value ) ) {
                 $errors[ $name ] = 'Please enter a valid number.';
@@ -67,7 +77,9 @@ function b2b_handle_event_registration_request() {
         } else {
             $result = b2b_save_event_registration( $event_id, $answers );
             if ( is_wp_error( $result ) ) {
-                $message = 'Could not save registration. Your answers are retained; please try again.';
+                $message = 'duplicate_registration' === $result->get_error_code()
+                    ? $result->get_error_message() : ( 'invalid_email' === $result->get_error_code()
+                    ? 'Please enter a valid attendee email address.' : 'Could not save registration. Your answers are retained; please try again.' );
             } else {
                 wp_safe_redirect( add_query_arg( 'registration_success', '1', get_permalink( $event_id ) ), 303 );
                 exit;
@@ -142,6 +154,10 @@ function b2b_mutate_registration_field( $event_id, $action, $name, $values = arr
             }
         }
         if ( null === $index ) { return new WP_Error( 'invalid_field', 'This field no longer exists. Reload the form and try again.' ); }
+    }
+    if ( null !== $index && ! empty( $fields[ $index ]['system'] )
+        && ( 'delete' === $action || 'email' !== ( $values['type'] ?? '' ) || true !== ( $values['required'] ?? false ) ) ) {
+        return new WP_Error( 'system_field', 'The attendee email field must remain required and cannot be deleted or changed to another type.' );
     }
     if ( 'delete' === $action ) {
         $archive = get_post_meta( $event_id, 'registration_fields_archive', true );

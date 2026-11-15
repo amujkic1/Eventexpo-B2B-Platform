@@ -13,7 +13,7 @@ $field_failure = $field_failure ?? array();
                 $input_id = 'ee-edit-' . $name;
             ?>
             <li>
-                <div class="ee-field-summary"><div><strong><?php echo esc_html( $field['label'] ); ?></strong><p class="ee-muted ee-small"><?php echo esc_html( ucfirst( $field['type'] ) ); ?></p></div><span class="ee-badge"><?php echo ! empty( $field['required'] ) ? 'Required' : 'Optional'; ?></span></div>
+                <div class="ee-field-summary"><div><strong><?php echo esc_html( $field['label'] ); ?></strong><p class="ee-muted ee-small"><?php echo esc_html( ucfirst( $field['type'] ) ); ?></p></div><span class="ee-badge"><?php echo ! empty( $field['system'] ) ? 'System · Required' : ( ! empty( $field['required'] ) ? 'Required' : 'Optional' ); ?></span></div>
                 <div class="ee-field-controls">
                     <details class="ee-field-editor" <?php echo $failed_edit ? 'open' : ''; ?>>
                         <summary>Edit <span class="screen-reader-text"><?php echo esc_html( $field['label'] ); ?></span></summary>
@@ -22,13 +22,13 @@ $field_failure = $field_failure ?? array();
                             <input type="hidden" name="b2b_field_action" value="edit">
                             <input type="hidden" name="field_name" value="<?php echo esc_attr( $name ); ?>">
                             <div class="ee-field"><label for="<?php echo esc_attr( $input_id ); ?>-label">Field label</label><input id="<?php echo esc_attr( $input_id ); ?>-label" name="field_label" value="<?php echo esc_attr( $edit['label'] ); ?>" required></div>
-                            <div class="ee-field"><label for="<?php echo esc_attr( $input_id ); ?>-type">Field type</label><select id="<?php echo esc_attr( $input_id ); ?>-type" name="field_type"><?php foreach ( array( 'text', 'email', 'number' ) as $type ) : ?><option value="<?php echo esc_attr( $type ); ?>" <?php selected( $edit['type'], $type ); ?>><?php echo esc_html( ucfirst( $type ) ); ?></option><?php endforeach; ?></select></div>
-                            <label class="ee-check"><input type="checkbox" name="field_required" value="1" <?php checked( ! empty( $edit['required'] ) ); ?>>Required</label>
+                            <div class="ee-field"><label for="<?php echo esc_attr( $input_id ); ?>-type">Field type</label><select id="<?php echo esc_attr( $input_id ); ?>-type" name="field_type" <?php disabled( ! empty( $field['system'] ) ); ?>><?php foreach ( array( 'text', 'email', 'number' ) as $type ) : ?><option value="<?php echo esc_attr( $type ); ?>" <?php selected( $edit['type'], $type ); ?>><?php echo esc_html( ucfirst( $type ) ); ?></option><?php endforeach; ?></select><?php if ( ! empty( $field['system'] ) ) : ?><input type="hidden" name="field_type" value="email"><?php endif; ?></div>
+                            <label class="ee-check"><input type="checkbox" name="field_required" value="1" <?php checked( ! empty( $edit['required'] ) ); ?> <?php disabled( ! empty( $field['system'] ) ); ?>>Required</label><?php if ( ! empty( $field['system'] ) ) : ?><input type="hidden" name="field_required" value="1"><p class="ee-muted ee-small">System attendee email: label can be edited; type and required status are fixed.</p><?php endif; ?>
                             <p class="ee-muted ee-small">Type and required changes affect new submissions only. Historical answers keep their original values.</p>
                             <button type="submit" class="ee-button">Save field</button>
                         </form>
                     </details>
-                    <details class="ee-field-delete" <?php echo ( $field_failure['name'] ?? '' ) === $name && 'delete' === ( $field_failure['action'] ?? '' ) ? 'open' : ''; ?>>
+                    <?php if ( empty( $field['system'] ) ) : ?><details class="ee-field-delete" <?php echo ( $field_failure['name'] ?? '' ) === $name && 'delete' === ( $field_failure['action'] ?? '' ) ? 'open' : ''; ?>>
                         <summary>Delete <span class="screen-reader-text"><?php echo esc_html( $field['label'] ); ?></span></summary>
                         <form method="post" action="#ee-registration-fields" class="ee-form">
                             <input type="hidden" name="b2b_field_nonce" value="<?php echo esc_attr( wp_create_nonce( 'b2b_registration_field_' . $event_id . '_delete_' . $name ) ); ?>">
@@ -38,7 +38,7 @@ $field_failure = $field_failure ?? array();
                             <label class="ee-check"><input type="checkbox" name="confirm_delete" value="1" required>I confirm deletion of this field.</label>
                             <button type="submit" class="ee-button">Delete field</button>
                         </form>
-                    </details>
+                    </details><?php endif; ?>
                 </div>
             </li>
             <?php endforeach; ?>

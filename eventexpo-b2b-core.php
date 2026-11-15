@@ -23,3 +23,4 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/events/event-public-profile
 require_once plugin_dir_path( __FILE__ ) . 'includes/events/manage-event.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/registrations/event-registration-fields.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/registrations/event-registrations.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/registrations/email-identity.php';
