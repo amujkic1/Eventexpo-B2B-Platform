@@ -39,7 +39,66 @@ add_action(
 function b2b_save_event_registration( $event_id, $answers ) {
 
     if ( ! is_array( $answers ) ) { return new WP_Error( 'invalid_answers', 'Invalid registration data.' ); }
-    return b2b_save_unique_registration( $event_id, $answers );
+    $result = b2b_save_unique_registration( $event_id, $answers );
+    if ( ! is_wp_error( $result ) ) {
+        // The writer has committed and released its lock before mail is attempted.
+        b2b_send_registration_notification( $result, 'received' );
+        b2b_send_registration_notification( $result, 'organizer' );
+    }
+    return $result;
+}
+
+/** Send one best-effort plain-text message without changing the saved result. */
+function b2b_send_registration_notification( $registration_id, $type ) {
+    $messages = array(
+        'received'  => array( 'Registration received', 'Your registration has been received and is awaiting review.' ),
+        'organizer' => array( 'New event registration', 'A new registration is awaiting your review. Log in to manage it using the link below.' ),
+        'approved'  => array( 'Registration approved', 'Your registration has been approved.' ),
+        'rejected'  => array( 'Registration not approved', 'Your registration has not been approved.' ),
+        'pending'   => array( 'Registration returned to review', 'Your registration has returned to review and is awaiting a new decision. It is not currently approved.' ),
+    );
+    if ( ! isset( $messages[ $type ] ) ) { return; }
+
+    $failure = 'invalid_context';
+    try {
+        $event_id = (int) get_post_meta( $registration_id, 'event_id', true );
+        $event = get_post( $event_id );
+        if ( ! $event || 'event' !== $event->post_type ) { return; }
+
+        $failure = 'invalid_recipient';
+        $recipient = get_post_meta( $registration_id, '_b2b_attendee_email', true );
+        $url = get_permalink( $event_id );
+        if ( 'organizer' === $type ) {
+            $company_id = (int) get_post_meta( $event_id, 'organizer_company_id', true );
+            $company = $company_id ? get_post( $company_id ) : null;
+            $owner = $company && 'company' === $company->post_type ? get_userdata( $company->post_author ) : false;
+            if ( ! $owner || (int) get_user_meta( $owner->ID, 'company_id', true ) !== $company_id
+                || ! b2b_user_can_manage_event( $owner->ID, $event_id ) ) {
+                return;
+            }
+            $recipient = $owner->user_email;
+            $url = b2b_get_manage_event_url( $event_id );
+        }
+        if ( ! is_string( $recipient ) || strpbrk( $recipient, "\r\n" ) || ! is_email( $recipient ) ) { return; }
+
+        $title = sanitize_text_field( wp_specialchars_decode( wp_strip_all_tags( $event->post_title ), ENT_QUOTES ) );
+        $body = sprintf( "Event: %s\nRegistration: #%d\n\n%s\n\n%s\n\nEventExpo B2B",
+            $title, $registration_id, $messages[ $type ][1], esc_url_raw( $url, array( 'http', 'https' ) ) );
+        $failure = 'mail_failed';
+        if ( wp_mail( $recipient, 'EventExpo B2B: ' . $messages[ $type ][0], $body, array(
+            'From: EventExpo B2B <info@eventexpo.ba>',
+            'Content-Type: text/plain; charset=UTF-8',
+        ) ) ) {
+            $failure = '';
+        }
+    } catch ( Throwable $error ) {
+        $failure = 'mail_exception';
+    } finally {
+        if ( $failure ) {
+            // IDs and fixed codes only: transport errors can contain private data.
+            error_log( sprintf( 'EventExpo notification: registration=%d type=%s error=%s', $registration_id, $type, $failure ) );
+        }
+    }
 }
 
 /**
@@ -182,44 +241,38 @@ function b2b_update_registration_status( $registration_id, $new_status ) {
         );
     }
 
-    $event_id = absint(
-        get_post_meta( $registration_id, 'event_id', true )
-    );
-
-    if (
-        ! $event_id ||
-        'event' !== get_post_type( $event_id ) ||
-        ! b2b_user_can_manage_event(
-            get_current_user_id(),
-            $event_id
-        )
-    ) {
-        return new WP_Error(
-            'access_denied',
-            'You cannot manage this registration.'
-        );
+    global $wpdb;
+    $lock = 'ee-email-migrate-' . md5( $wpdb->prefix );
+    $suppressed = $wpdb->suppress_errors( true );
+    if ( '1' !== (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 10)', $lock ) ) ) {
+        $wpdb->suppress_errors( $suppressed );
+        return new WP_Error( 'storage_busy', 'Registration is temporarily busy. Please try again.' );
     }
-
-    $updated = update_post_meta(
-        $registration_id,
-        'registration_status',
-        $new_status
-    );
-
-    if ( false === $updated ) {
-        $current_status = get_post_meta(
-            $registration_id,
-            'registration_status',
-            true
-        );
-
-        if ( $current_status !== $new_status ) {
-            return new WP_Error(
-                'update_failed',
-                'Could not update registration status.'
-            );
+    $reconnect_retries = $wpdb->reconnect_retries;
+    $wpdb->reconnect_retries = 0;
+    try {
+        // Read fresh values after waiting for another status writer or migration.
+        wp_cache_delete( $registration_id, 'post_meta' );
+        $event_id = absint( get_post_meta( $registration_id, 'event_id', true ) );
+        wp_cache_delete( $event_id, 'post_meta' );
+        wp_cache_delete( get_current_user_id(), 'user_meta' );
+        if ( ! $event_id || 'event' !== get_post_type( $event_id )
+            || ! b2b_user_can_manage_event( get_current_user_id(), $event_id ) ) {
+            return new WP_Error( 'access_denied', 'You cannot manage this registration.' );
         }
+        $current_status = get_post_meta( $registration_id, 'registration_status', true ) ?: 'pending';
+        if ( $current_status === $new_status ) { return true; }
+
+        $updated = update_post_meta( $registration_id, 'registration_status', $new_status );
+        if ( false === $updated || get_post_meta( $registration_id, 'registration_status', true ) !== $new_status ) {
+            return new WP_Error( 'update_failed', 'Could not update registration status.' );
+        }
+    } finally {
+        $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
+        $wpdb->reconnect_retries = $reconnect_retries;
+        $wpdb->suppress_errors( $suppressed );
     }
 
+    b2b_send_registration_notification( $registration_id, $new_status );
     return true;
 }
