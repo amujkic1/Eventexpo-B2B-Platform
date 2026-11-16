@@ -1,8 +1,9 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 $field_failure = $field_failure ?? array();
+$can_edit_fields = b2b_user_can_edit_event( get_current_user_id(), $event_id );
 ?>
-<div class="ee-grid ee-two-column">
+<div class="ee-grid <?php echo $can_edit_fields ? 'ee-two-column' : ''; ?>">
     <section><h2>Registration fields</h2>
         <p class="ee-muted ee-small">Changes apply to future submissions. Existing answers are preserved.</p>
         <?php if ( $registration_fields ) : ?><ul class="ee-field-list ee-builder-fields">
@@ -14,7 +15,7 @@ $field_failure = $field_failure ?? array();
             ?>
             <li>
                 <div class="ee-field-summary"><div><strong><?php echo esc_html( $field['label'] ); ?></strong><p class="ee-muted ee-small"><?php echo esc_html( ucfirst( $field['type'] ) ); ?></p></div><span class="ee-badge"><?php echo ! empty( $field['system'] ) ? 'System · Required' : ( ! empty( $field['required'] ) ? 'Required' : 'Optional' ); ?></span></div>
-                <div class="ee-field-controls">
+                <?php if ( $can_edit_fields ) : ?><div class="ee-field-controls">
                     <details class="ee-field-editor" <?php echo $failed_edit ? 'open' : ''; ?>>
                         <summary>Edit <span class="screen-reader-text"><?php echo esc_html( $field['label'] ); ?></span></summary>
                         <form method="post" action="#ee-registration-fields" class="ee-form">
@@ -39,12 +40,12 @@ $field_failure = $field_failure ?? array();
                             <button type="submit" class="ee-button">Delete field</button>
                         </form>
                     </details><?php endif; ?>
-                </div>
+                </div><?php endif; ?>
             </li>
             <?php endforeach; ?>
         </ul><?php else : ?><div class="ee-empty"><?php echo b2b_icon( 'plus' ); ?><h2>No fields yet</h2><p>No registration fields have been added.</p></div><?php endif; ?>
     </section>
-    <?php $add = 'add' === ( $field_failure['action'] ?? '' ) ? $field_failure['values'] : array( 'label' => '', 'type' => 'text', 'required' => false ); ?>
+    <?php if ( $can_edit_fields ) : $add = 'add' === ( $field_failure['action'] ?? '' ) ? $field_failure['values'] : array( 'label' => '', 'type' => 'text', 'required' => false ); ?>
     <aside class="ee-card"><h2>Add a field</h2><form method="post" action="#ee-registration-fields" class="ee-form ee-builder-add">
         <input type="hidden" name="b2b_field_nonce" value="<?php echo esc_attr( wp_create_nonce( 'b2b_registration_field_' . $event_id . '_add_' ) ); ?>">
         <input type="hidden" name="b2b_field_action" value="add">
@@ -53,4 +54,5 @@ $field_failure = $field_failure ?? array();
         <label class="ee-check"><input type="checkbox" name="field_required" value="1" <?php checked( ! empty( $add['required'] ) ); ?>>Required</label>
         <button class="ee-button" type="submit"><?php echo b2b_icon( 'plus' ); ?>Add field</button>
     </form></aside>
+    <?php endif; ?>
 </div>

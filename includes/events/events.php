@@ -27,6 +27,14 @@ function b2b_register_event_post_type() {
         'has_archive'  => false,
         'rewrite'      => array( 'slug' => 'events' ),
         'menu_icon'    => 'dashicons-calendar-alt',
+        // Organizers use the company-authorized frontend; native editors are admin-only.
+        'capability_type' => array( 'b2b_event', 'b2b_events' ),
+        'map_meta_cap' => true,
+        'capabilities' => array_fill_keys( array(
+            'edit_posts', 'edit_others_posts', 'publish_posts', 'read_private_posts',
+            'delete_posts', 'delete_private_posts', 'delete_published_posts',
+            'delete_others_posts', 'edit_private_posts', 'edit_published_posts', 'create_posts',
+        ), 'manage_options' ),
         'supports'     => array(
             'title',
             'editor',
@@ -272,6 +280,8 @@ function b2b_get_event_data( $event_id ) {
  */
 function b2b_user_can_manage_event( $user_id, $event_id ) {
 
+    if ( ! $user_id || 'event' !== get_post_type( $event_id ) ) { return false; }
+
     if ( user_can( $user_id, 'manage_options' ) ) {
         return true;
     }
@@ -297,6 +307,13 @@ function b2b_user_can_manage_event( $user_id, $event_id ) {
     }
 
     return (int) $company_id === (int) $organizer_company_id;
+}
+
+/** Viewing a company's workspace does not imply permission to edit during review. */
+function b2b_user_can_edit_event( $user_id, $event_id ) {
+    return b2b_user_can_manage_event( $user_id, $event_id )
+        && ( user_can( $user_id, 'manage_options' )
+            || in_array( get_post_status( $event_id ), array( 'draft', 'publish' ), true ) );
 }
 
 /**

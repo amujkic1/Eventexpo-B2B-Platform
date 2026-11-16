@@ -4,12 +4,75 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+/** Create only a draft, with the company taken from the signed-in account. */
+function b2b_create_event_draft( $title ) {
+    $user_id = get_current_user_id();
+    $company_id = (int) get_user_meta( $user_id, 'company_id', true );
+    if ( ! $user_id || 'company' !== get_post_type( $company_id ) ) {
+        return new WP_Error( 'access_denied', 'A company profile is required to create an event.' );
+    }
+    $title = is_string( $title ) ? sanitize_text_field( $title ) : '';
+    if ( '' === $title ) { return new WP_Error( 'invalid_title', 'Event title is required.' ); }
+
+    $event_id = wp_insert_post( wp_slash( array(
+        'post_type' => 'event', 'post_status' => 'draft', 'post_author' => $user_id,
+        'post_title' => $title, 'meta_input' => array( 'organizer_company_id' => $company_id ),
+    ) ), true );
+    if ( is_wp_error( $event_id ) ) { return $event_id; }
+    if ( (int) get_post_meta( $event_id, 'organizer_company_id', true ) !== $company_id ) {
+        wp_delete_post( $event_id, true );
+        return new WP_Error( 'save_failed', 'Could not connect the event to your company. Please try again.' );
+    }
+    return $event_id;
+}
+
+/** Submission changes only the native post status; publication stays in WP Admin. */
+function b2b_submit_event_for_approval( $event_id ) {
+    if ( ! b2b_user_can_manage_event( get_current_user_id(), $event_id ) ) {
+        return new WP_Error( 'access_denied', 'You cannot submit this event.' );
+    }
+    if ( 'draft' !== get_post_status( $event_id ) ) {
+        return new WP_Error( 'invalid_status', 'Only a draft event can be submitted for approval.' );
+    }
+    return wp_update_post( array( 'ID' => $event_id, 'post_status' => 'pending' ), true );
+}
+
+/** Process new lifecycle actions before output, then redirect to prevent POST replay. */
+function b2b_handle_event_lifecycle_request() {
+    if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' )
+        || ( ! isset( $_POST['b2b_create_event'] ) && ! isset( $_POST['b2b_submit_event'] ) ) ) { return; }
+    $creating = isset( $_POST['b2b_create_event'] );
+    $event_id = isset( $_GET['event_id'] ) && is_string( $_GET['event_id'] ) ? absint( $_GET['event_id'] ) : 0;
+    $nonce = isset( $_POST['b2b_lifecycle_nonce'] ) && is_string( $_POST['b2b_lifecycle_nonce'] )
+        ? wp_unslash( $_POST['b2b_lifecycle_nonce'] ) : '';
+    $action = $creating ? 'b2b_create_event' : 'b2b_submit_event_' . $event_id;
+    $title = isset( $_POST['event_title'] ) && is_string( $_POST['event_title'] )
+        ? sanitize_text_field( wp_unslash( $_POST['event_title'] ) ) : '';
+    if ( ! is_user_logged_in() || ! wp_verify_nonce( $nonce, $action ) ) {
+        $result = new WP_Error( 'security_check', 'Security check failed. Reload the page and try again.' );
+    } else {
+        $result = $creating ? b2b_create_event_draft( $title ) : b2b_submit_event_for_approval( $event_id );
+    }
+    if ( is_wp_error( $result ) ) {
+        $GLOBALS['b2b_event_lifecycle_failure'] = array( 'message' => $result->get_error_message(), 'title' => $title );
+        nocache_headers();
+        return;
+    }
+    $url = add_query_arg( 'event_result', $creating ? 'created' : 'submitted', b2b_get_manage_event_url( $result ) );
+    wp_safe_redirect( $url . ( $creating ? '#ee-event-details' : '' ), 303 );
+    exit;
+}
+add_action( 'template_redirect', 'b2b_handle_event_lifecycle_request' );
+
 /**
  * List the events the current user can manage.
  */
 function b2b_manage_event_list() {
 
     $events = b2b_get_manageable_events( get_current_user_id() );
+    $company_id = (int) get_user_meta( get_current_user_id(), 'company_id', true );
+    $can_create_event = 'company' === get_post_type( $company_id );
+    $lifecycle_failure = $GLOBALS['b2b_event_lifecycle_failure'] ?? array();
 
     $event_dates = array();
     foreach ( $events as $event ) {
@@ -18,7 +81,7 @@ function b2b_manage_event_list() {
 
     return b2b_render_app(
         'events/manage-event-list',
-        compact( 'events', 'event_dates' ),
+        compact( 'events', 'event_dates', 'can_create_event', 'lifecycle_failure' ),
         'events'
     );
 }
@@ -63,6 +126,7 @@ function b2b_manage_event_shortcode() {
     }
 
     $message = '';
+    $can_edit_event = b2b_user_can_edit_event( get_current_user_id(), $event_id );
 
     if (
     isset( $_SERVER['REQUEST_METHOD'] ) &&
@@ -117,6 +181,10 @@ function b2b_manage_event_shortcode() {
         'POST' === $_SERVER['REQUEST_METHOD'] &&
         isset( $_POST['b2b_save_event'] )
     ) {
+
+        if ( ! $can_edit_event ) {
+            return b2b_render_app( 'shared/message', array( 'message' => 'This event is pending approval and cannot be edited until an administrator returns it to draft.' ) );
+        }
 
         $nonce = isset( $_POST['b2b_event_nonce'] )
             ? sanitize_text_field( wp_unslash( $_POST['b2b_event_nonce'] ) )
@@ -250,6 +318,12 @@ function b2b_manage_event_shortcode() {
     if ( isset( $field_messages[ $field_result ] ) ) { $message = $field_messages[ $field_result ]; }
     $field_failure = $GLOBALS['b2b_field_failure'] ?? array();
     if ( $field_failure ) { $message = $field_failure['message']; }
+    $event_messages = array( 'created' => 'Draft created. Add the event details and registration fields, save your changes, then submit for approval.',
+        'submitted' => 'Event submitted for approval. Editing is locked while EventExpo reviews it.' );
+    $event_result = isset( $_GET['event_result'] ) && is_string( $_GET['event_result'] ) ? $_GET['event_result'] : '';
+    if ( isset( $event_messages[ $event_result ] ) ) { $message = $event_messages[ $event_result ]; }
+    $lifecycle_failure = $GLOBALS['b2b_event_lifecycle_failure'] ?? array();
+    if ( $lifecycle_failure ) { $message = $lifecycle_failure['message']; }
 
     $registration_fields = b2b_get_event_registration_fields( $event_id );
     $registration_search = isset( $_GET['registration_search'] ) && is_string( $_GET['registration_search'] ) ? sanitize_text_field( wp_unslash( $_GET['registration_search'] ) ) : '';
@@ -270,7 +344,7 @@ function b2b_manage_event_shortcode() {
 
     return b2b_render_app(
         'events/manage-event',
-        compact( 'event_id', 'event', 'data', 'message', 'event_types', 'selected_event_type', 'registration_fields', 'registration_rows', 'registration_results', 'registration_search', 'registration_status', 'registration_url', 'field_failure' ),
+        compact( 'event_id', 'event', 'data', 'message', 'event_types', 'selected_event_type', 'registration_fields', 'registration_rows', 'registration_results', 'registration_search', 'registration_status', 'registration_url', 'field_failure', 'can_edit_event' ),
         'events'
     );
 }

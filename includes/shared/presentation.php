@@ -191,5 +191,6 @@ function b2b_date_parts( $value ) {
 }
 
 function b2b_status_label( $status ) {
-    return 'publish' === $status ? 'Published' : ucfirst( $status );
+    $labels = array( 'publish' => 'Published', 'pending' => 'Pending Approval', 'draft' => 'Draft' );
+    return $labels[ $status ] ?? ucfirst( $status );
 }

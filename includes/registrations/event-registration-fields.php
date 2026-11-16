@@ -101,6 +101,10 @@ add_action(
  */
 function b2b_render_event_registration_form( $event_id ) {
 
+    if ( 'event' !== get_post_type( $event_id ) || 'publish' !== get_post_status( $event_id ) ) {
+        return b2b_render_template( 'shared/message', array( 'message' => 'Registration is available only for published events.' ) );
+    }
+
     $fields = b2b_get_event_registration_fields( $event_id );
     $answers = array();
     $errors = array();
@@ -135,7 +139,7 @@ function b2b_render_event_registration_form( $event_id ) {
 /** Mutate one stable field identity; never rewrite submitted answers. */
 function b2b_mutate_registration_field( $event_id, $action, $name, $values = array() ) {
     if ( 'event' !== get_post_type( $event_id ) || ! is_user_logged_in()
-        || ! b2b_user_can_manage_event( get_current_user_id(), $event_id ) ) {
+        || ! b2b_user_can_edit_event( get_current_user_id(), $event_id ) ) {
         return new WP_Error( 'forbidden', 'You are not authorized to manage these fields.' );
     }
     if ( ! in_array( $action, array( 'add', 'edit', 'delete' ), true ) ) {
@@ -206,7 +210,7 @@ function b2b_handle_registration_field_request() {
         'required' => isset( $_POST['field_required'] ),
     );
     $error = '';
-    if ( ! $event_id || ! is_user_logged_in() || ! b2b_user_can_manage_event( get_current_user_id(), $event_id ) ) {
+    if ( ! $event_id || ! is_user_logged_in() || ! b2b_user_can_edit_event( get_current_user_id(), $event_id ) ) {
         $error = 'You are not authorized to manage these fields.';
     } elseif ( ! wp_verify_nonce( $nonce, 'b2b_registration_field_' . $event_id . '_' . $action . '_' . $name ) ) {
         $error = 'Security check failed. Reload the page and try again.';

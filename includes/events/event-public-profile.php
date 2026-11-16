@@ -20,7 +20,8 @@ function b2b_event_public_profile( $event_id ) {
 
     if (
         ! $event ||
-        'event' !== $event->post_type
+        'event' !== $event->post_type ||
+        ( 'publish' !== $event->post_status && ! $can_manage )
     ) {
         return b2b_render_app( 'shared/message', array( 'message' => 'Event not found.' ) );
     }
