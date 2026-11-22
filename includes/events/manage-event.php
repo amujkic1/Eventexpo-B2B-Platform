@@ -4,37 +4,26 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-/** Create only a draft, with the company taken from the signed-in account. */
-function b2b_create_event_draft( $title ) {
-    $user_id = get_current_user_id();
-    $company_id = (int) get_user_meta( $user_id, 'company_id', true );
-    if ( ! $user_id || 'company' !== get_post_type( $company_id ) ) {
-        return new WP_Error( 'access_denied', 'A company profile is required to create an event.' );
+/** Null means no POST; security errors stop rendering, validation messages do not. */
+function b2b_handle_event_details_request( $event_id, $can_edit_event ) {
+    if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) || ! isset( $_POST['b2b_save_event'] ) ) { return null; }
+    if ( ! $can_edit_event ) {
+        return new WP_Error( 'access_denied', 'This event is pending approval and cannot be edited until an administrator returns it to draft.' );
     }
-    $title = is_string( $title ) ? sanitize_text_field( $title ) : '';
-    if ( '' === $title ) { return new WP_Error( 'invalid_title', 'Event title is required.' ); }
-
-    $event_id = wp_insert_post( wp_slash( array(
-        'post_type' => 'event', 'post_status' => 'draft', 'post_author' => $user_id,
-        'post_title' => $title, 'meta_input' => array( 'organizer_company_id' => $company_id ),
-    ) ), true );
-    if ( is_wp_error( $event_id ) ) { return $event_id; }
-    if ( (int) get_post_meta( $event_id, 'organizer_company_id', true ) !== $company_id ) {
-        wp_delete_post( $event_id, true );
-        return new WP_Error( 'save_failed', 'Could not connect the event to your company. Please try again.' );
+    $nonce = isset( $_POST['b2b_event_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['b2b_event_nonce'] ) ) : '';
+    if ( ! wp_verify_nonce( $nonce, 'b2b_save_event_' . $event_id ) ) {
+        return new WP_Error( 'security_check', 'Security check failed.' );
     }
-    return $event_id;
-}
-
-/** Submission changes only the native post status; publication stays in WP Admin. */
-function b2b_submit_event_for_approval( $event_id ) {
-    if ( ! b2b_user_can_manage_event( get_current_user_id(), $event_id ) ) {
-        return new WP_Error( 'access_denied', 'You cannot submit this event.' );
+    $title = isset( $_POST['event_title'] ) && is_string( $_POST['event_title'] )
+        ? sanitize_text_field( wp_unslash( $_POST['event_title'] ) ) : '';
+    $description = isset( $_POST['event_description'] ) ? wp_kses_post( wp_unslash( $_POST['event_description'] ) ) : '';
+    $event_type_id = isset( $_POST['event_type'] ) ? absint( $_POST['event_type'] ) : 0;
+    $meta = array();
+    foreach ( array( 'start_date', 'end_date', 'location', 'city', 'country' ) as $field ) {
+        $meta[ $field ] = isset( $_POST[ $field ] ) ? sanitize_text_field( wp_unslash( $_POST[ $field ] ) ) : '';
     }
-    if ( 'draft' !== get_post_status( $event_id ) ) {
-        return new WP_Error( 'invalid_status', 'Only a draft event can be submitted for approval.' );
-    }
-    return wp_update_post( array( 'ID' => $event_id, 'post_status' => 'pending' ), true );
+    $result = b2b_update_event_details( $event_id, $title, $description, $event_type_id, $meta );
+    return is_wp_error( $result ) ? $result->get_error_message() : 'Event updated successfully.';
 }
 
 /** Process new lifecycle actions before output, then redirect to prevent POST replay. */
@@ -125,173 +114,15 @@ function b2b_manage_event_shortcode() {
         $event_types = array();
     }
 
-    $message = '';
     $can_edit_event = b2b_user_can_edit_event( get_current_user_id(), $event_id );
 
-    if (
-    isset( $_SERVER['REQUEST_METHOD'] ) &&
-    'POST' === $_SERVER['REQUEST_METHOD'] &&
-    isset( $_POST['b2b_update_registration_status'] )
-) {
-    $registration_id = isset( $_POST['registration_id'] )
-        ? absint( $_POST['registration_id'] )
-        : 0;
+    $message = b2b_handle_registration_status_request( $event_id );
 
-    $new_status = isset( $_POST['new_status'] )
-        && is_string( $_POST['new_status'] )
-        ? sanitize_key( wp_unslash( $_POST['new_status'] ) )
-        : '';
-
-    $nonce = isset( $_POST['b2b_status_nonce'] )
-        && is_string( $_POST['b2b_status_nonce'] )
-        ? sanitize_text_field(
-            wp_unslash( $_POST['b2b_status_nonce'] )
-        )
-        : '';
-
-    if (
-        ! wp_verify_nonce(
-            $nonce,
-            'b2b_update_registration_' . $registration_id
-        )
-    ) {
-        $message = 'Security check failed.';
-    } elseif (
-        (int) get_post_meta( $registration_id, 'event_id', true )
-        !== (int) $event_id
-    ) {
-        $message = 'Invalid registration for this event.';
-    } else {
-        $result = b2b_update_registration_status(
-            $registration_id,
-            $new_status
-        );
-
-        $message = is_wp_error( $result )
-            ? $result->get_error_message()
-            : 'Registration status updated successfully.';
+    $details_result = b2b_handle_event_details_request( $event_id, $can_edit_event );
+    if ( is_wp_error( $details_result ) ) {
+        return b2b_render_app( 'shared/message', array( 'message' => $details_result->get_error_message() ) );
     }
-}
-
-    /*
-     * Check and process form submission.
-     */
-    if (
-        isset( $_SERVER['REQUEST_METHOD'] ) &&
-        'POST' === $_SERVER['REQUEST_METHOD'] &&
-        isset( $_POST['b2b_save_event'] )
-    ) {
-
-        if ( ! $can_edit_event ) {
-            return b2b_render_app( 'shared/message', array( 'message' => 'This event is pending approval and cannot be edited until an administrator returns it to draft.' ) );
-        }
-
-        $nonce = isset( $_POST['b2b_event_nonce'] )
-            ? sanitize_text_field( wp_unslash( $_POST['b2b_event_nonce'] ) )
-            : '';
-
-        if ( ! wp_verify_nonce( $nonce, 'b2b_save_event_' . $event_id ) ) {
-            return b2b_render_app( 'shared/message', array( 'message' => 'Security check failed.' ) );
-        }
-
-        $event_title = isset( $_POST['event_title'] ) &&
-            is_string( $_POST['event_title'] )
-            ? sanitize_text_field( wp_unslash( $_POST['event_title'] ) )
-            : '';
-
-        $event_description = isset( $_POST['event_description'] )
-            ? wp_kses_post(
-                wp_unslash( $_POST['event_description'] )
-            )
-            : '';
-
-        $event_type_id = isset( $_POST['event_type'] )
-            ? absint( $_POST['event_type'] )
-            : 0;
-
-        $meta = array();
-
-        foreach ( array( 'start_date', 'end_date', 'location', 'city', 'country' ) as $field ) {
-
-            $meta[ $field ] = isset( $_POST[ $field ] )
-                ? sanitize_text_field(
-                    wp_unslash( $_POST[ $field ] )
-                )
-                : '';
-        }
-
-        foreach ( array( 'start_date', 'end_date' ) as $date_field ) {
-
-            if (
-                '' !== $meta[ $date_field ] &&
-                ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $meta[ $date_field ] )
-            ) {
-                $meta[ $date_field ] = '';
-            }
-        }
-
-        if ( '' === $event_title ) {
-
-            $message = 'Event title is required.';
-
-        } elseif (
-            '' !== $meta['start_date'] &&
-            '' !== $meta['end_date'] &&
-            $meta['end_date'] < $meta['start_date']
-        ) {
-
-            $message = 'End date cannot be before the start date.';
-
-        } else {
-
-            $result = wp_update_post(
-                array(
-                    'ID'           => $event_id,
-                    'post_title'   => $event_title,
-                    'post_content' => $event_description,
-                ),
-                true
-            );
-
-            if ( is_wp_error( $result ) ) {
-
-                $message = 'Could not save event.';
-
-            } else {
-
-                foreach ( $meta as $key => $value ) {
-
-                    update_post_meta(
-                        $event_id,
-                        $key,
-                        $value
-                    );
-                }
-
-                if (
-                    $event_type_id &&
-                    term_exists( $event_type_id, 'event_type' )
-                ) {
-
-                    wp_set_object_terms(
-                        $event_id,
-                        array( $event_type_id ),
-                        'event_type'
-                    );
-
-                } else {
-
-                    wp_set_object_terms(
-                        $event_id,
-                        array(),
-                        'event_type'
-                    );
-                }
-
-                $message = 'Event updated successfully.';
-            }
-        }
-    }
+    if ( null !== $details_result ) { $message = $details_result; }
 
     // Load the event after a possible update.
     $data  = b2b_get_event_data( $event_id );
@@ -342,9 +173,12 @@ function b2b_manage_event_shortcode() {
         );
     }
 
+    $can_edit_fields = b2b_user_can_edit_event( get_current_user_id(), $event_id );
+    $registration_page_id = isset( $_GET['page_id'] ) ? absint( $_GET['page_id'] ) : null;
+
     return b2b_render_app(
         'events/manage-event',
-        compact( 'event_id', 'event', 'data', 'message', 'event_types', 'selected_event_type', 'registration_fields', 'registration_rows', 'registration_results', 'registration_search', 'registration_status', 'registration_url', 'field_failure', 'can_edit_event' ),
+        compact( 'event_id', 'event', 'data', 'message', 'event_types', 'selected_event_type', 'registration_fields', 'registration_rows', 'registration_results', 'registration_search', 'registration_status', 'registration_url', 'registration_page_id', 'field_failure', 'can_edit_event', 'can_edit_fields' ),
         'events'
     );
 }

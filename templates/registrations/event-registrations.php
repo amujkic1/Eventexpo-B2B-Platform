@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 <div class="ee-panel">
     <form method="get" action="#ee-registrations" class="ee-registration-toolbar">
         <input type="hidden" name="event_id" value="<?php echo esc_attr( $event_id ); ?>">
-        <?php if ( isset( $_GET['page_id'] ) ) : ?><input type="hidden" name="page_id" value="<?php echo esc_attr( absint( $_GET['page_id'] ) ); ?>"><?php endif; ?>
+        <?php if ( null !== $registration_page_id ) : ?><input type="hidden" name="page_id" value="<?php echo esc_attr( $registration_page_id ); ?>"><?php endif; ?>
         <label class="ee-search"><span class="screen-reader-text">Search registration answers or number</span><?php echo b2b_icon( 'search' ); ?><input type="search" name="registration_search" value="<?php echo esc_attr( $registration_search ); ?>" placeholder="Search answers or #number…"></label>
         <label><span class="screen-reader-text">Registration status</span><select name="registration_status"><?php foreach ( array( '' => 'All statuses', 'approved' => 'Approved', 'pending' => 'Pending', 'rejected' => 'Rejected' ) as $value => $label ) : ?><option value="<?php echo esc_attr( $value ); ?>" <?php selected( $registration_status, $value ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></label>
         <button class="ee-button" type="submit">Search</button>

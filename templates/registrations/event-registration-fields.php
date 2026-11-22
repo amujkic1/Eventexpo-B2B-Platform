@@ -1,7 +1,6 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 $field_failure = $field_failure ?? array();
-$can_edit_fields = b2b_user_can_edit_event( get_current_user_id(), $event_id );
 ?>
 <div class="ee-grid <?php echo $can_edit_fields ? 'ee-two-column' : ''; ?>">
     <section><h2>Registration fields</h2>

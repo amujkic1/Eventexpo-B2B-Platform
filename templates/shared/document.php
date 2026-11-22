@@ -22,7 +22,7 @@ while ( have_posts() ) {
         echo b2b_company_public_profile( get_the_ID() );
     } elseif ( function_exists( 'um_is_core_page' ) && um_is_core_page( 'register' ) ) {
         // Keep the original page content and UM shortcode processing intact.
-        echo b2b_render_template( 'registrations/organizer-signup', array(
+        echo b2b_render_template( 'auth/organizer-signup', array(
             'registration_content' => apply_filters( 'the_content', get_the_content() ),
         ) );
     } else {

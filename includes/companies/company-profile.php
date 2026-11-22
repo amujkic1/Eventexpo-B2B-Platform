@@ -145,99 +145,15 @@ function b2b_my_company() {
              */
             if ( ! empty( $company_name ) ) {
 
-                $result = wp_update_post(
-                    array(
-                        'ID'           => $company_id,
-                        'post_title'   => $company_name,
-                        'post_content' => $company_description,
-                    ),
-                    true
+                $result = b2b_update_company_profile(
+                    $company_id,
+                    compact( 'company_name', 'company_description', 'website', 'email', 'phone', 'country', 'city', 'address', 'industry_id' ),
+                    ! empty( $_FILES['company_logo']['name'] )
                 );
-
                 if ( is_wp_error( $result ) ) {
-
-                    $message = 'The company profile could not be updated.';
-
+                    $message = $result->get_error_message();
                 } else {
-
-                    update_post_meta(
-                        $company_id,
-                        'website',
-                        $website
-                    );
-
-                    update_post_meta(
-                        $company_id,
-                        'email',
-                        $email
-                    );
-
-                    update_post_meta(
-                        $company_id,
-                        'phone',
-                        $phone
-                    );
-
-                    update_post_meta(
-                        $company_id,
-                        'country',
-                        $country
-                    );
-
-                    update_post_meta(
-                        $company_id,
-                        'city',
-                        $city
-                    );
-
-                    update_post_meta(
-                        $company_id,
-                        'address',
-                        $address
-                    );
-
-                    if (
-                        ! empty( $_FILES['company_logo']['name'] )
-                    ) {
-
-                        require_once ABSPATH . 'wp-admin/includes/file.php';
-                        require_once ABSPATH . 'wp-admin/includes/media.php';
-                        require_once ABSPATH . 'wp-admin/includes/image.php';
-
-                        $logo_id = media_handle_upload(
-                            'company_logo',
-                            $company_id
-                        );
-
-                        if ( ! is_wp_error( $logo_id ) ) {
-
-                            set_post_thumbnail(
-                                $company_id,
-                                $logo_id
-                            );
-                        }
-                    }
-
-                    if ( $industry_id ) {
-
-                        wp_set_object_terms(
-                            $company_id,
-                            array( $industry_id ),
-                            'industry'
-                        );
-
-                    } else {
-
-                        wp_set_object_terms(
-                            $company_id,
-                            array(),
-                            'industry'
-                        );
-                    }
-
                     $message = 'Company profile updated successfully.';
-
-                    // Reload the company with the updated data.
                     $company = get_post( $company_id );
                 }
 

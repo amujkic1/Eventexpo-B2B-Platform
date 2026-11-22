@@ -73,22 +73,3 @@ function b2b_register_industry_taxonomy() {
 }
 
 add_action( 'init', 'b2b_register_industry_taxonomy' );
-
-/**
- * Get company profile data.
- *
- * @param int $company_id Company post ID.
- * @return array Company profile data.
- */
-function b2b_get_company_data( $company_id ) {
-
-    return array(
-        'company' => get_post( $company_id ),
-        'website' => get_post_meta( $company_id, 'website', true ),
-        'email'   => get_post_meta( $company_id, 'email', true ),
-        'phone'   => get_post_meta( $company_id, 'phone', true ),
-        'country' => get_post_meta( $company_id, 'country', true ),
-        'city'    => get_post_meta( $company_id, 'city', true ),
-        'address' => get_post_meta( $company_id, 'address', true ),
-    );
-}
