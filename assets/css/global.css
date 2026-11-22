@@ -259,3 +259,58 @@ body.ee-app-page .ee-app :is(.ee-brand, .ee-user, .ee-button, .ee-nav a):hover {
 .ee-field-controls .ee-form { padding: 16px; border: 1px solid var(--ee-line); background: #fff; gap: 16px; }
 .ee-field-controls .ee-form .ee-button { justify-self: start; }
 .ee-app summary:focus-visible { outline: 2px solid var(--ee-primary); outline-offset: 3px; }
+
+/* Organizer signup keeps UM's native form, validation, nonces and honeypot. */
+.ee-view-signup .ee-main { max-width: 1120px; padding: 64px 24px; }
+.ee-signup-form { min-width: 0; padding: 40px; background: #fff; border: 1px solid var(--ee-line); }
+.ee-app .ee-signup-form .um { max-width: none; margin: 32px 0 0 !important; color: var(--ee-body); opacity: 1; }
+.ee-signup-form .um .um-row { margin: 0 !important; }
+.ee-signup-form .um .um-col-1 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.ee-signup-form .um .um-field { min-width: 0; padding: 0; }
+.ee-signup-form .um .um-field-company_name { grid-column: 1 / -1; }
+.ee-signup-form .um .um-field-label { margin-bottom: 8px; }
+.ee-signup-form .um .um-field-label label { color: var(--ee-muted); font-family: var(--ee-font); font-weight: 400; }
+.ee-app .ee-signup-form .um input.um-form-field {
+  font-family: var(--ee-font); font-size: 16px !important; min-height: 48px;
+  border: 1px solid var(--ee-line-strong); border-radius: 3px; color: var(--ee-ink); background-color: #fff;
+}
+/* UM resets outlines with !important; restore visible keyboard focus here. */
+.ee-app .ee-signup-form .um input.um-form-field:focus,
+.ee-app .ee-signup-form .um .um-button:focus-visible {
+  outline: 2px solid var(--ee-primary) !important; outline-offset: 3px;
+}
+.ee-app .ee-signup-form .um input.um-error,
+.ee-app .ee-signup-form .um input[aria-invalid=true] { border-color: var(--ee-action) !important; }
+.ee-signup-form .um .um-field-error,
+.ee-signup-form .um .um-error-block {
+  background: #fff5f3; color: #8d241b; border-radius: 0;
+  border-left: 3px solid var(--ee-action); font-family: var(--ee-font);
+}
+.ee-signup-form .um .um-field-error a { color: #8d241b !important; }
+.ee-signup-form .um .um-field-arrow { display: none; }
+.ee-signup-form .um .um-col-alt { display: flex; flex-wrap: wrap; gap: 24px; margin: 24px 0 0; }
+.ee-signup-form .um-col-alt > .um-half { float: none; width: auto; flex: 1 1 140px; margin: 0; }
+.ee-signup-form .um-col-alt > .um-clear { display: none; }
+.ee-app .ee-signup-form .um .um-button {
+  font-family: var(--ee-font); font-size: 14px; min-height: 48px; min-width: 0 !important;
+  border: 1px solid var(--ee-action) !important; border-radius: 3px;
+  background: var(--ee-action); color: #fff; box-shadow: none;
+  transition: background .15s, border-color .15s;
+}
+.ee-app .ee-signup-form .um .um-button:hover { background: var(--ee-action-hover); border-color: var(--ee-action-hover) !important; box-shadow: none; }
+.ee-app .ee-signup-form .um .um-button.um-alt { background: #fff; border-color: var(--ee-line-strong) !important; color: var(--ee-ink); }
+.ee-app .ee-signup-form .um .um-button.um-alt:hover { background: var(--ee-tint); border-color: var(--ee-primary) !important; }
+.ee-signup-form .um-toggle-password { display: none; }
+.ee-app .ee-signup-form .um input[data-key=user_password] { padding-right: 76px !important; }
+.ee-app .ee-password-toggle {
+  position: absolute; top: 0; right: 8px; min-width: 56px; height: 48px;
+  padding: 0 8px; border: 0; background: transparent; color: var(--ee-primary);
+  font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+}
+.ee-app .ee-password-toggle:hover { color: var(--ee-primary-hover); }
+@media (max-width: 600px) {
+  .ee-view-signup .ee-main { padding: 24px 16px; }
+  .ee-signup-form { padding: 24px; }
+  .ee-signup-form .um .um-col-1 { grid-template-columns: minmax(0, 1fr); }
+  .ee-signup-form .um-col-alt > .um-half { flex-basis: 100%; }
+}

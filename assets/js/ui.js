@@ -10,6 +10,24 @@
         app.classList.toggle('ee-menu-open', open);
       });
 
+      app.querySelectorAll('.ee-signup-form input[data-key="user_password"]').forEach(input => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'ee-password-toggle';
+        button.textContent = 'Show';
+        button.setAttribute('aria-controls', input.id);
+        button.setAttribute('aria-label', 'Show password');
+        button.setAttribute('aria-pressed', 'false');
+        button.addEventListener('click', () => {
+          const show = input.type === 'password';
+          input.type = show ? 'text' : 'password';
+          button.textContent = show ? 'Hide' : 'Show';
+          button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+          button.setAttribute('aria-pressed', String(show));
+        });
+        input.after(button);
+      });
+
       app.querySelectorAll('.ee-chip-group input, .ee-search-bar select').forEach(control => {
         control.addEventListener('change', () => control.form.requestSubmit());
       });

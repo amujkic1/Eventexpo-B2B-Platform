@@ -94,6 +94,10 @@ function b2b_is_app_page() {
     if ( ! is_page() ) {
         return false;
     }
+    // Use UM's assigned page, so registration also works with custom slugs.
+    if ( function_exists( 'um_is_core_page' ) && um_is_core_page( 'register' ) ) {
+        return true;
+    }
     $page = get_queried_object();
     if ( ! $page instanceof WP_Post ) {
         return false;
