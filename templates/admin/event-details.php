@@ -71,8 +71,11 @@ if ( ! defined( 'ABSPATH' ) ) {
             type="text"
             id="country"
             name="country"
+            list="ee-admin-event-countries"
+            autocomplete="country-name"
             value="<?php echo esc_attr( $country ); ?>"
         >
+        <?php echo b2b_country_datalist( 'ee-admin-event-countries' ); ?>
     </p>
 
     <p>

@@ -78,6 +78,18 @@ function b2b_asset_url( $file ) {
     return plugins_url( 'assets/' . $file, dirname( __DIR__, 2 ) . '/eventexpo-b2b-core.php' );
 }
 
+/** Native country suggestions; keep text values compatible with existing metadata. */
+function b2b_country_datalist( $id, $countries = null ) {
+    if ( null === $countries ) {
+        $countries = function_exists( 'UM' ) ? UM()->builtin()->get( 'countries' ) : array();
+    }
+    $html = '<datalist id="' . esc_attr( $id ) . '">';
+    foreach ( $countries as $country ) {
+        $html .= '<option value="' . esc_attr( $country ) . '"></option>';
+    }
+    return $html . '</datalist>';
+}
+
 function b2b_enqueue_assets() {
     wp_enqueue_style( 'eventexpo-b2b', b2b_asset_url( 'css/ui.css' ), array(), filemtime( dirname( __DIR__, 2 ) . '/assets/css/ui.css' ) );
     wp_enqueue_style( 'eventexpo-fonts', 'https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap', array(), null );

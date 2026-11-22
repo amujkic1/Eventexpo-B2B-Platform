@@ -32,6 +32,14 @@
         control.addEventListener('change', () => control.form.requestSubmit());
       });
 
+      app.querySelectorAll('.ee-search-bar input[list]').forEach(input => {
+        input.addEventListener('change', () => {
+          if (!input.value || [...input.list.options].some(option => option.value === input.value)) {
+            input.form.requestSubmit();
+          }
+        });
+      });
+
       app.querySelectorAll('[data-ee-tabs]').forEach(group => {
         const tabs = [...group.querySelectorAll('[role="tab"]')];
         const panels = [...group.querySelectorAll('[role="tabpanel"]')];

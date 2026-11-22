@@ -6,7 +6,8 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 <form method="get" class="ee-directory-filters">
     <div class="ee-search-bar">
         <label class="ee-search"><span class="screen-reader-text">Search companies</span><?php echo b2b_icon( 'search' ); ?><input type="search" name="company_search" value="<?php echo esc_attr( $search ); ?>" placeholder="Search companies"></label>
-        <label><span class="screen-reader-text">Country</span><select name="country"><option value="">All countries</option><?php foreach ( $countries as $option ) : ?><option value="<?php echo esc_attr( $option ); ?>" <?php selected( $country, $option ); ?>><?php echo esc_html( $option ); ?></option><?php endforeach; ?></select></label>
+        <label><span class="screen-reader-text">Country</span><input type="text" name="country" value="<?php echo esc_attr( $country ); ?>" list="ee-directory-countries" placeholder="All countries" autocomplete="off"></label>
+        <?php echo b2b_country_datalist( 'ee-directory-countries', $countries ); ?>
         <button class="ee-button" type="submit">Search</button>
     </div>
     <fieldset class="ee-chip-group"><legend class="screen-reader-text">Industry</legend>

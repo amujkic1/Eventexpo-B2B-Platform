@@ -38,8 +38,9 @@ $pending = $registration_results['counts']['pending'];
                 <div class="ee-field ee-field-full"><label for="event_description">Description</label><textarea id="event_description" name="event_description" rows="7"><?php echo esc_textarea( $event->post_content ); ?></textarea></div>
                 <div class="ee-field ee-field-full"><label for="event_type">Event type</label><select id="event_type" name="event_type"><option value="">Select event type</option><?php foreach ( $event_types as $event_type ) : ?><option value="<?php echo esc_attr( $event_type->term_id ); ?>" <?php selected( $selected_event_type, $event_type->term_id ); ?>><?php echo esc_html( $event_type->name ); ?></option><?php endforeach; ?></select></div>
                 <?php foreach ( array( 'start_date' => 'Start date', 'end_date' => 'End date', 'location' => 'Venue', 'city' => 'City', 'country' => 'Country' ) as $field => $label ) : ?>
-                    <div class="ee-field"><label for="<?php echo esc_attr( $field ); ?>"><?php echo esc_html( $label ); ?></label><input type="<?php echo in_array( $field, array( 'start_date', 'end_date' ), true ) ? 'date' : 'text'; ?>" id="<?php echo esc_attr( $field ); ?>" name="<?php echo esc_attr( $field ); ?>" value="<?php echo esc_attr( $data[ $field ] ); ?>"></div>
+                    <div class="ee-field"><label for="<?php echo esc_attr( $field ); ?>"><?php echo esc_html( $label ); ?></label><input type="<?php echo in_array( $field, array( 'start_date', 'end_date' ), true ) ? 'date' : 'text'; ?>" id="<?php echo esc_attr( $field ); ?>" name="<?php echo esc_attr( $field ); ?>" value="<?php echo esc_attr( $data[ $field ] ); ?>" <?php if ( 'country' === $field ) : ?>list="ee-event-countries" autocomplete="country-name"<?php endif; ?>></div>
                 <?php endforeach; ?>
+                <?php echo b2b_country_datalist( 'ee-event-countries' ); ?>
             </fieldset>
             <?php if ( $can_edit_event ) : ?><div class="ee-form-actions"><button type="submit" class="ee-button"><?php echo b2b_icon( 'save' ); ?>Save changes</button></div><?php endif; ?>
         </form>

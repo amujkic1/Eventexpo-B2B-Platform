@@ -17,8 +17,9 @@ $location_values = array( 'country' => $country, 'city' => $city, 'address' => $
             </div></section>
             <section class="ee-form-section"><h2>Location</h2><div class="ee-fields">
                 <?php foreach ( array( 'country' => 'Country', 'city' => 'City', 'address' => 'Address' ) as $field => $label ) : ?>
-                    <div class="ee-field <?php echo 'address' === $field ? 'ee-field-full' : ''; ?>"><label for="<?php echo esc_attr( $field ); ?>"><?php echo esc_html( $label ); ?></label><input type="text" id="<?php echo esc_attr( $field ); ?>" name="<?php echo esc_attr( $field ); ?>" value="<?php echo esc_attr( $location_values[ $field ] ); ?>"></div>
+                    <div class="ee-field <?php echo 'address' === $field ? 'ee-field-full' : ''; ?>"><label for="<?php echo esc_attr( $field ); ?>"><?php echo esc_html( $label ); ?></label><input type="text" id="<?php echo esc_attr( $field ); ?>" name="<?php echo esc_attr( $field ); ?>" value="<?php echo esc_attr( $location_values[ $field ] ); ?>" <?php if ( 'country' === $field ) : ?>list="ee-company-countries" autocomplete="country-name"<?php endif; ?>></div>
                 <?php endforeach; ?>
+                <?php echo b2b_country_datalist( 'ee-company-countries' ); ?>
             </div></section>
             <section class="ee-form-section"><h2>Contact information</h2><div class="ee-fields">
                 <div class="ee-field"><label for="email">Company email</label><input type="email" id="email" name="email" value="<?php echo esc_attr( $email ); ?>"></div>
